@@ -109,8 +109,8 @@ jobs:
           EOF
           fi
 
-      - name: Create empty .env (skip secrets)
-        run: touch .env
+      - name: Create placeholder .env (skip secrets)
+        run: echo "SKIP_SECRETS=true" > .env
 
       - name: Build Android (arm64-v8a only)
         run: |

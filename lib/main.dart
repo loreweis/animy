@@ -183,8 +183,11 @@ void main(List<String> args) async {
     await safeCall(() => ShaderRegistry.load(),
         errorMessage: 'Failed to load upscale shaders');
 
-    await safeCall(() => dotenv.load(fileName: '.env'),
+    await safeCall(() => dotenv.load(fileName: '.env', isOptional: true),
         errorMessage: 'Failed to load .env file');
+    if (!dotenv.isInitialized) {
+      dotenv.testLoad(fileInput: '');
+    }
 
     if (!Platform.isLinux) {
       await safeCall(
