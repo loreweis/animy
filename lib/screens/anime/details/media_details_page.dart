@@ -58,6 +58,7 @@ class MediaDetailsPage extends StatefulWidget {
   final Source? source;
   final int initialTabIndex;
   final String? scrollToCommentId;
+  final bool heroToCover;
 
   const MediaDetailsPage({
     super.key,
@@ -66,6 +67,7 @@ class MediaDetailsPage extends StatefulWidget {
     this.source,
     this.initialTabIndex = 0,
     this.scrollToCommentId,
+    this.heroToCover = false,
   });
 
   @override
@@ -393,6 +395,7 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
                         SliverToBoxAdapter(
                           child: Obx(() => MediaHeader(
                                 tag: widget.tag,
+                                heroToCover: widget.heroToCover,
                                 data: controller.media.value,
                                 posterUrl: controller.media.value.poster,
                                 userStatus: controller.mediaStatus.value,

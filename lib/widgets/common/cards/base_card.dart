@@ -24,6 +24,10 @@ abstract class CarouselCard extends StatelessWidget {
     return itemData.fallbackImageFor(isLandscape: isLandscape);
   }
 
+  bool usesCoverHero(bool isLandscape) {
+    return itemData.usesCover(isLandscape: isLandscape);
+  }
+
   bool shouldShowTitle() {
     return itemData.title != null &&
         itemData.title!.isNotEmpty &&

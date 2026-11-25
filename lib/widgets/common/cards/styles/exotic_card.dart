@@ -84,6 +84,7 @@ class ExoticCard extends CarouselCard {
             child: MediaPoster(
               imageUrl: getCardImageUrl(config.isLandscape),
               errorImage: getCardErrorImageUrl(config.isLandscape),
+              useCoverHero: usesCoverHero(config.isLandscape),
               heroTag: tag,
               radius: 12,
               border: Border.all(

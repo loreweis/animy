@@ -1,5 +1,6 @@
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/controllers/settings/methods.dart';
+import 'package:anymex/controllers/settings/settings.dart';
 import 'package:anymex/models/Anilist/anilist_media_user.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/anime/details_page.dart';
@@ -167,6 +168,10 @@ class GridAnimeCard extends StatelessWidget {
     final prefix = tagPrefix != null ? '${tagPrefix!}-' : '';
     final heroTag = '$prefix${media.id}-${itemType.name}-grid-card';
 
+    final heroToCover = carouselData.usesCover(
+      isLandscape: settingsController.customCardStyle.isLandscape,
+    );
+
     final cardWidget = MediaCardGate(
       itemData: carouselData,
       tag: heroTag,
@@ -210,6 +215,7 @@ class GridAnimeCard extends StatelessWidget {
                   media: media.data,
                   tag: heroTag,
                   source: novSource,
+                  heroToCover: heroToCover,
                 ));
           } else if (itemType == ItemType.manga) {
             media.data.mediaType = ItemType.manga;
@@ -227,6 +233,7 @@ class GridAnimeCard extends StatelessWidget {
                   media: media.data,
                   tag: heroTag,
                   source: mangaSource,
+                  heroToCover: heroToCover,
                 ));
           } else {
             media.data.mediaType = ItemType.anime;
@@ -244,6 +251,7 @@ class GridAnimeCard extends StatelessWidget {
                   media: media.data,
                   tag: heroTag,
                   source: animeSource,
+                  heroToCover: heroToCover,
                 ));
           }
         },

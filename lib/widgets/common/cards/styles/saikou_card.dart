@@ -70,6 +70,7 @@ class SaikouCard extends CarouselCard {
                 MediaPoster(
                   imageUrl: getCardImageUrl(config.isLandscape),
                   errorImage: getCardErrorImageUrl(config.isLandscape),
+                  useCoverHero: usesCoverHero(config.isLandscape),
                   heroTag: tag,
                   radius: 12,
                   sourceId: itemData.source,

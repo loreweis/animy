@@ -2,6 +2,7 @@ import 'package:anymex/l10n/l10n_extension.dart';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/controllers/services/community_service.dart';
 import 'package:anymex/controllers/settings/settings.dart';
+import 'package:anymex/models/models_convertor/carousel/carousel_data.dart';
 import 'package:anymex/database/data_keys/keys.dart';
 import 'package:anymex/screens/anime/details_page.dart';
 import 'package:anymex/screens/community/user_recommendations_page.dart';
@@ -403,10 +404,20 @@ class _SeeAllCard extends StatelessWidget {
   void _navigateToDetails() {
     final media = item.media;
     final tag = 'community-all-${media.id}';
+    final heroToCover = settingsController.customCardStyle.isLandscape &&
+        CarouselData.isValidImageUrl(media.cover);
     if (type == ItemType.manga) {
-      navigateWithAnimation(() => MangaDetailsPage(media: media, tag: tag));
+      navigateWithAnimation(() => MangaDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     } else {
-      navigateWithAnimation(() => AnimeDetailsPage(media: media, tag: tag));
+      navigateWithAnimation(() => AnimeDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     }
   }
 

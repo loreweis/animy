@@ -2,6 +2,7 @@ import 'package:anymex/l10n/l10n_extension.dart';
 import 'dart:math' as math;
 
 import 'package:anymex/controllers/settings/settings.dart';
+import 'package:anymex/models/models_convertor/carousel/carousel_data.dart';
 import 'package:anymex/controllers/source/source_controller.dart';
 import 'package:anymex/database/isar_models/offline_media.dart';
 import 'package:anymex/models/Media/media.dart';
@@ -310,12 +311,18 @@ class _LibraryContent extends StatelessWidget {
 
   void _handleItemTap(BuildContext context, OfflineMedia item,
       List<OfflineMedia> items, int index, String tag) {
+    final heroToCover = settingsController.customCardStyle.isLandscape &&
+        CarouselData.isValidImageUrl(item.cover);
     if (controller.type.value.isAnime) {
       navigateWithAnimation(() => AnimeDetailsPage(
-          media: Media.fromOfflineMedia(item, ItemType.anime), tag: tag));
+          media: Media.fromOfflineMedia(item, ItemType.anime),
+          tag: tag,
+          heroToCover: heroToCover));
     } else if (controller.type.value.isManga) {
       navigateWithAnimation(() => MangaDetailsPage(
-          media: Media.fromOfflineMedia(item, ItemType.manga), tag: tag));
+          media: Media.fromOfflineMedia(item, ItemType.manga),
+          tag: tag,
+          heroToCover: heroToCover));
     } else {
       final sourceName = item.season ?? '';
       final source = sourceName.isNotEmpty
@@ -325,7 +332,8 @@ class _LibraryContent extends StatelessWidget {
       navigateWithAnimation(() => NovelDetailsPage(
           source: source,
           media: Media.fromOfflineMedia(items[index], ItemType.novel),
-          tag: tag));
+          tag: tag,
+          heroToCover: heroToCover));
     }
   }
 }

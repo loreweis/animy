@@ -1,6 +1,7 @@
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/controllers/services/community_service.dart';
 import 'package:anymex/controllers/settings/settings.dart';
+import 'package:anymex/models/models_convertor/carousel/carousel_data.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/anime/details_page.dart';
 import 'package:anymex/screens/community/user_recommendations_page.dart';
@@ -396,12 +397,26 @@ class _UnderratedCard extends StatelessWidget {
   void _navigateToDetails(BuildContext context) {
     final media = item.media;
     final tag = 'underrated-${media.id}';
+    final heroToCover = settingsController.customCardStyle.isLandscape &&
+        CarouselData.isValidImageUrl(media.cover);
     if (type == ItemType.novel) {
-      navigateWithAnimation(() => NovelDetailsPage(media: media));
+      navigateWithAnimation(() => NovelDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     } else if (type == ItemType.manga) {
-      navigateWithAnimation(() => MangaDetailsPage(media: media, tag: tag));
+      navigateWithAnimation(() => MangaDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     } else {
-      navigateWithAnimation(() => AnimeDetailsPage(media: media, tag: tag));
+      navigateWithAnimation(() => AnimeDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     }
   }
 }

@@ -95,7 +95,8 @@ class BigCarouselClassicState
                       context: itemContext,
                       media: media,
                       tag: tag,
-                      onTap: () => navigateToDetailsPage(media, tag),
+                      onTap: () =>
+                          navigateToDetailsPage(media, tag, heroToCover: true),
                       onLongPress: () {
                         final itemType =
                             widget.carouselType == CarouselType.manga
@@ -208,7 +209,7 @@ Widget buildCarouselCard({
                       tag: tag,
                       transitionOnUserGestures: true,
                       flightShuttleBuilder:
-                          AnymeXImage.heroFlightShuttleBuilder,
+                          AnymeXImage.coverHeroFlightShuttleBuilder,
                       child: AnymeXImage(
                         imageUrl: media.cover!,
                         fit: BoxFit.cover,

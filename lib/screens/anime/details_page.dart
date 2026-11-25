@@ -9,6 +9,7 @@ class AnimeDetailsPage extends StatelessWidget {
   final Source? source;
   final int initialTabIndex;
   final String? scrollToCommentId;
+  final bool heroToCover;
 
   const AnimeDetailsPage({
     super.key,
@@ -17,6 +18,7 @@ class AnimeDetailsPage extends StatelessWidget {
     this.source,
     this.initialTabIndex = 0,
     this.scrollToCommentId,
+    this.heroToCover = false,
   });
 
   @override
@@ -27,6 +29,7 @@ class AnimeDetailsPage extends StatelessWidget {
       source: source,
       initialTabIndex: initialTabIndex,
       scrollToCommentId: scrollToCommentId,
+      heroToCover: heroToCover,
     );
   }
 }

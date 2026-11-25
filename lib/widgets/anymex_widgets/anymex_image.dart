@@ -91,6 +91,40 @@ class AnymeXImage extends StatefulWidget {
     );
   }
 
+  static Widget coverHeroFlightShuttleBuilder(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection flightDirection,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final fromHero = fromHeroContext.widget as Hero;
+    final toHero = toHeroContext.widget as Hero;
+    final cardChild = flightDirection == HeroFlightDirection.push
+        ? fromHero.child
+        : toHero.child;
+
+    return AnimatedBuilder(
+      animation: animation,
+      child: cardChild,
+      builder: (context, child) {
+        final t = animation.value.clamp(0.0, 1.0);
+        final fadeOut = t <= 0.45
+            ? 0.0
+            : Curves.easeOut.transform(((t - 0.45) / 0.55).clamp(0.0, 1.0));
+        final opacity = (1.0 - fadeOut).clamp(0.0, 1.0);
+
+        return Material(
+          type: MaterialType.transparency,
+          child: Opacity(
+            opacity: opacity,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   State<AnymeXImage> createState() => _AnymeXImageState();
 }

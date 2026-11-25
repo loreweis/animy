@@ -7,12 +7,14 @@ class NovelDetailsPage extends StatelessWidget {
   final Media media;
   final Source? source;
   final String tag;
+  final bool heroToCover;
 
   const NovelDetailsPage({
     super.key,
     required this.media,
     this.source,
     this.tag = '',
+    this.heroToCover = false,
   });
 
   @override
@@ -21,6 +23,7 @@ class NovelDetailsPage extends StatelessWidget {
       media: media,
       tag: tag,
       source: source,
+      heroToCover: heroToCover,
     );
   }
 }

@@ -200,6 +200,9 @@ class _ReusableCarouselState extends State<ReusableCarousel> {
     final controller = Get.find<SourceController>();
     final ItemType mediaType = _determineItemType(itemData);
     final media = Media.fromCarouselData(itemData, mediaType);
+    final heroToCover = itemData.usesCover(
+      isLandscape: settingsController.customCardStyle.isLandscape,
+    );
 
     void onTapHandler() {
       if (mediaType == ItemType.novel || widget.type == ItemType.novel) {
@@ -210,16 +213,19 @@ class _ReusableCarouselState extends State<ReusableCarousel> {
               media: media,
               tag: tag,
               source: source,
+              heroToCover: heroToCover,
             ));
       } else if (mediaType == ItemType.manga) {
         navigateWithAnimation(() => MangaDetailsPage(
               media: media,
               tag: tag,
+              heroToCover: heroToCover,
             ));
       } else {
         navigateWithAnimation(() => AnimeDetailsPage(
               media: media,
               tag: tag,
+              heroToCover: heroToCover,
             ));
       }
     }

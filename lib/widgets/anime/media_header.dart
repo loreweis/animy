@@ -33,6 +33,7 @@ class MediaHeader extends StatelessWidget {
     this.userProgress,
     this.extendBehindTitleBar = false,
     this.quickActions,
+    this.heroToCover = false,
   });
 
   final Media? data;
@@ -43,6 +44,7 @@ class MediaHeader extends StatelessWidget {
   final String? userProgress;
   final bool extendBehindTitleBar;
   final Widget? quickActions;
+  final bool heroToCover;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,134 @@ class MediaHeader extends StatelessWidget {
 
     final status = data?.status ?? '';
 
+    Widget backdropLayer = Obx(() {
+      final isOled = settingsController.detailsOledMode;
+      final blurScope = settingsController.detailsBlurScope;
+      if (blurScope != 0 && !isOled) {
+        return const SizedBox.shrink();
+      }
+      final usePoster = settingsController.usePosterForBlur;
+      final effectiveCover =
+          (data?.cover?.isNotEmpty == true ? data!.cover! : posterUrl);
+      final blurSourceUrl = isOled
+          ? effectiveCover
+          : (usePoster ? posterUrl : effectiveCover);
+      final blurFallbackUrl =
+          isOled ? posterUrl : (usePoster ? effectiveCover : posterUrl);
+      if (blurSourceUrl.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      final tintBlur = isOled ? false : settingsController.tintBlur;
+      final blurColor = tintBlur ? colors.primary.opaque(0.4) : null;
+      final isMesh = settingsController.detailsBlurStyle == 1;
+      final isBaked = isMesh || settingsController.useComputedBlur;
+      final blurAmount = UISettingsKeys.detailsBlurAmount.get<double>(20.0);
+      final brightness =
+          UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
+
+      Widget content = isBaked
+          ? BakedBlurImage(
+              url: blurSourceUrl,
+              fallback: blurFallbackUrl,
+              saturation: 1.0,
+              blurAmount: blurAmount,
+              brightness: brightness,
+              color: blurColor,
+              fit: BoxFit.cover,
+              height: headerHeight,
+              width: double.infinity,
+              fadeBottom: true,
+              isMesh: isMesh,
+            )
+          : ShaderMask(
+              shaderCallback: (bounds) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.60, 1.0],
+                  colors: [
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: ColorFiltered(
+                colorFilter: ColorFilter.matrix([
+                  brightness,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  brightness,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  brightness,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  0,
+                ]),
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(
+                      sigmaX: blurAmount, sigmaY: blurAmount),
+                  child: AnymeXImage(
+                    imageUrl: blurSourceUrl,
+                    errorImage: blurFallbackUrl,
+                    radius: 0,
+                    height: headerHeight,
+                    width: double.infinity,
+                    color: blurColor,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            );
+
+      return RepaintBoundary(
+        child: content,
+      );
+    });
+
+    if (heroToCover && tag.isNotEmpty) {
+      backdropLayer = Hero(
+        tag: tag,
+        transitionOnUserGestures: true,
+        flightShuttleBuilder: AnymeXImage.coverHeroFlightShuttleBuilder,
+        placeholderBuilder: (_, __, child) => child,
+        child: backdropLayer,
+      );
+    }
+
+    Widget posterWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(posterRadius),
+      child: AnymeXImage(
+        imageUrl: posterUrl,
+        radius: posterRadius,
+        width: posterWidth,
+        height: posterHeight,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+      ),
+    );
+
+    if (!heroToCover) {
+      posterWidget = Hero(
+        tag: tag,
+        transitionOnUserGestures: true,
+        flightShuttleBuilder: AnymeXImage.heroFlightShuttleBuilder,
+        child: posterWidget,
+      );
+    }
+
     return SizedBox(
       height: headerHeight,
       width: double.infinity,
@@ -78,103 +208,7 @@ class MediaHeader extends StatelessWidget {
             }),
           ),
           Positioned.fill(
-            child: Obx(() {
-              final isOled = settingsController.detailsOledMode;
-              final blurScope = settingsController.detailsBlurScope;
-              if (blurScope != 0 && !isOled) {
-                return const SizedBox.shrink();
-              }
-              final usePoster = settingsController.usePosterForBlur;
-              final effectiveCover =
-                  (data?.cover?.isNotEmpty == true ? data!.cover! : posterUrl);
-              final blurSourceUrl = isOled
-                  ? effectiveCover
-                  : (usePoster ? posterUrl : effectiveCover);
-              final blurFallbackUrl =
-                  isOled ? posterUrl : (usePoster ? effectiveCover : posterUrl);
-              if (blurSourceUrl.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              final tintBlur = isOled ? false : settingsController.tintBlur;
-              final blurColor = tintBlur ? colors.primary.opaque(0.4) : null;
-              final isMesh = settingsController.detailsBlurStyle == 1;
-              final isBaked = isMesh || settingsController.useComputedBlur;
-              final blurAmount =
-                  UISettingsKeys.detailsBlurAmount.get<double>(20.0);
-              final brightness =
-                  UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
-
-              Widget content = isBaked
-                  ? BakedBlurImage(
-                      url: blurSourceUrl,
-                      fallback: blurFallbackUrl,
-                      saturation: 1.0,
-                      blurAmount: blurAmount,
-                      brightness: brightness,
-                      color: blurColor,
-                      fit: BoxFit.cover,
-                      height: headerHeight,
-                      width: double.infinity,
-                      fadeBottom: true,
-                      isMesh: isMesh,
-                    )
-                  : ShaderMask(
-                      shaderCallback: (bounds) {
-                        return const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: [0.0, 0.60, 1.0],
-                          colors: [
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                        ).createShader(bounds);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: ColorFiltered(
-                        colorFilter: ColorFilter.matrix([
-                          brightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          brightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          brightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          1,
-                          0,
-                        ]),
-                        child: ImageFiltered(
-                          imageFilter: ImageFilter.blur(
-                              sigmaX: blurAmount, sigmaY: blurAmount),
-                          child: AnymeXImage(
-                            imageUrl: blurSourceUrl,
-                            errorImage: blurFallbackUrl,
-                            radius: 0,
-                            height: headerHeight,
-                            width: double.infinity,
-                            color: blurColor,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    );
-
-              return RepaintBoundary(
-                child: content,
-              );
-            }),
+            child: backdropLayer,
           ),
           Positioned.fill(
             child: Obx(() {
@@ -245,23 +279,7 @@ class MediaHeader extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Hero(
-                          tag: tag,
-                          transitionOnUserGestures: true,
-                          flightShuttleBuilder:
-                              AnymeXImage.heroFlightShuttleBuilder,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(posterRadius),
-                            child: AnymeXImage(
-                              imageUrl: posterUrl,
-                              radius: posterRadius,
-                              width: posterWidth,
-                              height: posterHeight,
-                              fadeInDuration: Duration.zero,
-                              fadeOutDuration: Duration.zero,
-                            ),
-                          ),
-                        ),
+                        child: posterWidget,
                       ),
                     ),
                     const SizedBox(width: 14),

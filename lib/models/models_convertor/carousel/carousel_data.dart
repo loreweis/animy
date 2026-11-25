@@ -36,7 +36,7 @@ class CarouselData {
     this.reason,
   });
 
-  static bool _isValidImageUrl(String? url) {
+  static bool isValidImageUrl(String? url) {
     if (url == null) return false;
     final trimmed = url.trim();
     return trimmed.isNotEmpty &&
@@ -45,17 +45,20 @@ class CarouselData {
         trimmed != 'null';
   }
 
+  bool usesCover({required bool isLandscape}) {
+    return isLandscape && isValidImageUrl(cover);
+  }
+
   String imageFor({required bool isLandscape}) {
-    if (isLandscape && _isValidImageUrl(cover)) {
+    if (usesCover(isLandscape: isLandscape)) {
       return cover!;
     }
     return poster ?? '';
   }
 
   String? fallbackImageFor({required bool isLandscape}) {
-    if (isLandscape &&
-        _isValidImageUrl(cover) &&
-        _isValidImageUrl(poster) &&
+    if (usesCover(isLandscape: isLandscape) &&
+        isValidImageUrl(poster) &&
         cover != poster) {
       return poster;
     }

@@ -53,15 +53,28 @@ abstract class BaseBigCarouselState<T extends BaseBigCarousel>
     }
   }
 
-  void navigateToDetailsPage(Media media, String tag) {
+  void navigateToDetailsPage(Media media, String tag,
+      {bool heroToCover = false}) {
     if (widget.carouselType == CarouselType.manga) {
       if (media.mediaType == ItemType.novel) {
-        navigate(() => NovelDetailsPage(media: media));
+        navigate(() => NovelDetailsPage(
+              media: media,
+              tag: tag,
+              heroToCover: heroToCover,
+            ));
       } else {
-        navigate(() => MangaDetailsPage(media: media, tag: tag));
+        navigate(() => MangaDetailsPage(
+              media: media,
+              tag: tag,
+              heroToCover: heroToCover,
+            ));
       }
     } else {
-      navigate(() => AnimeDetailsPage(media: media, tag: tag));
+      navigate(() => AnimeDetailsPage(
+            media: media,
+            tag: tag,
+            heroToCover: heroToCover,
+          ));
     }
   }
 

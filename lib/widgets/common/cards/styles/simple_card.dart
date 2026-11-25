@@ -96,6 +96,7 @@ class DefaultCard extends CarouselCard {
               child: MediaPoster(
                 imageUrl: getCardImageUrl(config.isLandscape),
                 errorImage: getCardErrorImageUrl(config.isLandscape),
+                useCoverHero: usesCoverHero(config.isLandscape),
                 heroTag: tag,
                 radius: 0,
                 sourceId: itemData.source,

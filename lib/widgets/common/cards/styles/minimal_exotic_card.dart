@@ -94,6 +94,7 @@ class MinimalExoticCard extends CarouselCard {
                     MediaPoster(
                       imageUrl: getCardImageUrl(config.isLandscape),
                       errorImage: getCardErrorImageUrl(config.isLandscape),
+                      useCoverHero: usesCoverHero(config.isLandscape),
                       heroTag: tag,
                       radius: 10,
                       sourceId: itemData.source,

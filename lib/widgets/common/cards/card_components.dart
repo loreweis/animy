@@ -52,6 +52,7 @@ class MediaPoster extends StatelessWidget {
   final bool? isAnime;
   final int? cacheWidth;
   final int? cacheHeight;
+  final bool useCoverHero;
 
   const MediaPoster({
     super.key,
@@ -64,6 +65,7 @@ class MediaPoster extends StatelessWidget {
     this.isAnime,
     this.cacheWidth,
     this.cacheHeight,
+    this.useCoverHero = false,
   });
 
   @override
@@ -104,7 +106,9 @@ class MediaPoster extends StatelessWidget {
     return Hero(
       tag: heroTag,
       transitionOnUserGestures: true,
-      flightShuttleBuilder: AnymeXImage.heroFlightShuttleBuilder,
+      flightShuttleBuilder: useCoverHero
+          ? AnymeXImage.coverHeroFlightShuttleBuilder
+          : AnymeXImage.heroFlightShuttleBuilder,
       child: clipWidget,
     );
   }
