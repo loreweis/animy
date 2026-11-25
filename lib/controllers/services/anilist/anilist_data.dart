@@ -484,6 +484,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
           english
           native
         }
+        bannerImage
         type
         averageScore
         coverImage {
@@ -501,6 +502,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
           english
           native
         }
+        bannerImage
         episodes
         type
         averageScore
@@ -546,6 +548,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
           english
           native
         }
+        bannerImage
         type
         averageScore
         coverImage {
@@ -569,6 +572,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
           english
           native
         }
+        bannerImage
         type
         averageScore
         coverImage {
@@ -675,6 +679,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -693,6 +698,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -714,6 +720,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -732,6 +739,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -750,6 +758,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -769,6 +778,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -788,6 +798,7 @@ averageScore
           english
           native
         }
+        bannerImage
         coverImage {
           large
         }
@@ -911,6 +922,7 @@ averageScore
                   romaji
                   english
                 }
+                bannerImage
                 coverImage { large }
                 type
                 format
@@ -1222,6 +1234,7 @@ averageScore
       romaji
       native
     }
+    bannerImage
     coverImage {
       large
     }

@@ -89,6 +89,7 @@ class MediaCardGate extends StatelessWidget {
       englishTitle: data.english ?? data.name,
       id: data.id.toString(),
       poster: data.poster,
+      cover: data.cover,
       extraData: data.rating,
       source: (isManga
               ? data.currentChapter?.number?.toString()

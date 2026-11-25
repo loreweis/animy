@@ -261,6 +261,7 @@ class _AnilistMangaListState extends State<AnilistMangaList>
           id: f.id,
           title: f.title,
           poster: f.cover,
+          cover: f.bannerImage,
           episodeCount: 'N/A',
           rating: f.averageScore?.toString(),
         );

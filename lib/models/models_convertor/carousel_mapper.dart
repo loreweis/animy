@@ -46,6 +46,7 @@ extension OfflineMediaMapper on OfflineMedia {
         romajiTitle: jname ?? japanese,
         englishTitle: english ?? name,
         poster: poster,
+        cover: cover,
         source: currentChapter?.sourceName ?? currentEpisode?.source,
         servicesType: ServicesType.values[serviceIndex ?? 0],
         extraData:
@@ -63,6 +64,7 @@ extension RelationMapper on Relation {
       romajiTitle: title,
       englishTitle: title,
       poster: poster,
+      cover: cover,
       source: type,
       servicesType: ServicesType.anilist,
       args: type,
@@ -81,6 +83,7 @@ extension TrackedMediaMapper on TrackedMedia {
         romajiTitle: romajiTitle,
         englishTitle: title,
         poster: poster,
+        cover: cover,
         servicesType: servicesType,
         extraData: formattedProgress,
         releasing: mediaStatus == "RELEASING");
@@ -97,6 +100,7 @@ extension MediaMapper on Media {
         englishTitle: title,
         servicesType: serviceType,
         poster: poster,
+        cover: cover,
         extraData: rating.toString(),
         releasing: status == "RELEASING");
   }
@@ -111,6 +115,7 @@ extension CommunityMediaMapper on CommunityMedia {
         englishTitle: media.title,
         servicesType: ServicesType.anilist,
         poster: media.poster,
+        cover: media.cover,
         extraData: media.rating.toString(),
         releasing: media.status == "RELEASING",
         anilistUserId: anilistUserId,

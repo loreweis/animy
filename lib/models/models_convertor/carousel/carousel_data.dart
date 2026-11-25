@@ -6,6 +6,7 @@ class CarouselData {
   String? romajiTitle;
   String? englishTitle;
   String? poster;
+  String? cover;
   String? extraData;
   String? source;
   String? args;
@@ -23,6 +24,7 @@ class CarouselData {
     this.romajiTitle,
     this.englishTitle,
     this.poster,
+    this.cover,
     this.extraData,
     this.source,
     this.args,
@@ -33,4 +35,30 @@ class CarouselData {
     this.author,
     this.reason,
   });
+
+  static bool _isValidImageUrl(String? url) {
+    if (url == null) return false;
+    final trimmed = url.trim();
+    return trimmed.isNotEmpty &&
+        trimmed != '?' &&
+        trimmed != '??' &&
+        trimmed != 'null';
+  }
+
+  String imageFor({required bool isLandscape}) {
+    if (isLandscape && _isValidImageUrl(cover)) {
+      return cover!;
+    }
+    return poster ?? '';
+  }
+
+  String? fallbackImageFor({required bool isLandscape}) {
+    if (isLandscape &&
+        _isValidImageUrl(cover) &&
+        _isValidImageUrl(poster) &&
+        cover != poster) {
+      return poster;
+    }
+    return null;
+  }
 }

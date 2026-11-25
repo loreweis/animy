@@ -1250,6 +1250,7 @@ class CommunityMedia {
       romajiTitle: media.romajiTitle,
       englishTitle: media.title,
       poster: media.poster,
+      cover: media.cover,
       extraData: media.rating.toString(),
       servicesType: media.serviceType,
       releasing: media.status == "RELEASING",

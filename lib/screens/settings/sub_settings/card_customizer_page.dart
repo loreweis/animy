@@ -42,7 +42,13 @@ class _CardCustomizerPageState extends State<CardCustomizerPage> {
     super.initState();
     registerBuiltInMediaCardStyles();
 
-    final converted = convertData(trendingAnimes.take(4).toList());
+    final withCover = trendingAnimes
+        .where((e) => e.cover != null && e.cover!.isNotEmpty)
+        .take(4)
+        .toList();
+    final converted = convertData(
+      withCover.isNotEmpty ? withCover : trendingAnimes.take(4).toList(),
+    );
     _sampleCards = converted.isNotEmpty
         ? converted
         : [

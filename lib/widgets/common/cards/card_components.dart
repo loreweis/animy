@@ -44,6 +44,7 @@ String getBadgeText(CarouselData itemData, DataVariant variant, ItemType type) {
 
 class MediaPoster extends StatelessWidget {
   final String imageUrl;
+  final String? errorImage;
   final String heroTag;
   final double radius;
   final BoxBorder? border;
@@ -55,6 +56,7 @@ class MediaPoster extends StatelessWidget {
   const MediaPoster({
     super.key,
     required this.imageUrl,
+    this.errorImage,
     required this.heroTag,
     this.radius = 12,
     this.border,
@@ -68,6 +70,7 @@ class MediaPoster extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget innerImage = AnymeXImage(
       imageUrl: imageUrl,
+      errorImage: errorImage,
       radius: radius,
       height: double.infinity,
       width: double.infinity,

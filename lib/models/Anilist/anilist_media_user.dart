@@ -9,6 +9,7 @@ class TrackedMedia {
   String? idMal;
   String? title;
   String? poster;
+  String? cover;
   String? episodeCount;
   String? chapterCount;
   String? rating;
@@ -190,6 +191,7 @@ class TrackedMedia {
     this.title,
     this.romajiTitle,
     this.poster,
+    this.cover,
     this.episodeCount,
     this.chapterCount,
     this.rating,
@@ -232,6 +234,7 @@ class TrackedMedia {
           titleMap?['userPreferred'] ??
           titleMap?['english'],
       poster: json['media']['coverImage']['large'],
+      cover: json['media']?['bannerImage']?.toString(),
       episodeCount: json['progress']?.toString(),
       userProgress: (json['progress'] as num?)?.toInt(),
       chapterCount: json['media']['chapters']?.toString(),
@@ -309,6 +312,9 @@ class TrackedMedia {
       poster: show['poster'] != null
           ? "https://wsrv.nl/?url=https://simkl.in/posters/${show['poster']}_m.jpg"
           : '?',
+      cover: show['fanart'] != null
+          ? "https://wsrv.nl/?url=https://simkl.in/fanart/${show['fanart']}_medium.jpg"
+          : null,
       episodeCount: json['watched_episodes_count']?.toString(),
       totalEpisodes: (json['total_episodes_count'] ??
               json['total_episodes'] ??
@@ -351,6 +357,9 @@ class TrackedMedia {
       poster: show['poster'] != null
           ? "https://wsrv.nl/?url=https://simkl.in/posters/${show['poster']}_m.jpg"
           : '?',
+      cover: show['fanart'] != null
+          ? "https://wsrv.nl/?url=https://simkl.in/fanart/${show['fanart']}_medium.jpg"
+          : null,
       episodeCount:
           Simkl.simklMovieToAL(json['status']) != 'COMPLETED' ? "0" : '1',
       totalEpisodes: '1',

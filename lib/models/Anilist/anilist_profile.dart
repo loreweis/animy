@@ -184,6 +184,7 @@ class FavouriteMedia {
   String? id;
   String? title;
   String? cover;
+  String? bannerImage;
   double? averageScore;
   int? episodes;
   List<String> genres;
@@ -193,6 +194,7 @@ class FavouriteMedia {
     this.id,
     this.title,
     this.cover,
+    this.bannerImage,
     this.averageScore,
     this.episodes,
     this.genres = const [],
@@ -213,6 +215,7 @@ class FavouriteMedia {
           json['title']?['english'] ??
           json['title']?['romaji'],
       cover: json['coverImage']?['large'],
+      bannerImage: json['bannerImage']?.toString(),
       averageScore: json['averageScore'] != null
           ? (json['averageScore'] / 10).toDouble()
           : null,

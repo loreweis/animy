@@ -482,6 +482,7 @@ class AnilistAuth extends GetxController {
           nodes {
             id
             title { userPreferred english romaji }
+            bannerImage
             coverImage { large }
             averageScore
             format
@@ -492,6 +493,7 @@ class AnilistAuth extends GetxController {
           nodes {
             id
             title { userPreferred english romaji }
+            bannerImage
             coverImage { large }
             averageScore
             format
@@ -994,6 +996,7 @@ class AnilistAuth extends GetxController {
           nodes {
             id
             title { userPreferred english romaji }
+            bannerImage
             coverImage { large }
             averageScore
             format
@@ -1006,6 +1009,7 @@ class AnilistAuth extends GetxController {
           nodes {
             id
             title { userPreferred english romaji }
+            bannerImage
             coverImage { large }
             averageScore
             format
@@ -1192,6 +1196,7 @@ class AnilistAuth extends GetxController {
             startDate { year month day }
             endDate { year month day }
             title { userPreferred english romaji native }
+            bannerImage
             coverImage { large }
             nextAiringEpisode {
               episode
@@ -2149,6 +2154,7 @@ class AnilistAuth extends GetxController {
               month
               day
             }
+            bannerImage
             coverImage {
               large
             }
@@ -2188,6 +2194,7 @@ class AnilistAuth extends GetxController {
             startDate {
               year
             }
+            bannerImage
             coverImage {
               large
             }
@@ -2328,6 +2335,7 @@ class AnilistAuth extends GetxController {
               month
               day
             }
+            bannerImage
             coverImage {
               large
             }
@@ -2717,6 +2725,7 @@ class AnilistAuth extends GetxController {
               startDate {
                 year
               }
+              bannerImage
               coverImage {
                 large
               }

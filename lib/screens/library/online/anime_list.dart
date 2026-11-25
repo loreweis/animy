@@ -282,6 +282,7 @@ class _AnimeListState extends State<AnimeList> with TickerProviderStateMixin {
           id: f.id,
           title: f.title,
           poster: f.cover,
+          cover: f.bannerImage,
           episodeCount: 'N/A',
           rating: f.averageScore?.toString(),
         );

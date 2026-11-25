@@ -1478,6 +1478,7 @@ class Media {
         englishTitle: data.englishTitle ?? data.title ?? '?',
         title: data.title ?? data.englishTitle ?? '?',
         poster: data.poster ?? '?',
+        cover: data.cover,
         rating: data.extraData ?? '0.0',
         mediaType: type,
         serviceType: data.servicesType);
@@ -1519,6 +1520,7 @@ class Media {
         title: parsedTitle,
         romajiTitle: parsedRomaji,
         poster: rec['coverImage']?['large'] ?? '',
+        cover: rec['bannerImage']?.toString(),
         color: rec['coverImage']?['color'] ?? '',
         rating: ((rec['averageScore'] ?? 0) / 10).toString(),
         serviceType: ServicesType.anilist);

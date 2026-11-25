@@ -26,6 +26,7 @@ class CardData {
   String id;
   String title;
   String poster;
+  String? cover;
   String? episodeCount;
   String? rating;
   String? totalEpisodes;
@@ -40,6 +41,7 @@ class CardData {
       {required this.id,
       required this.title,
       required this.poster,
+      this.cover,
       this.episodeCount,
       this.rating,
       this.totalEpisodes,
@@ -55,6 +57,7 @@ class CardData {
       id: data.id ?? '',
       title: data.displayTitle,
       poster: data.poster ?? '',
+      cover: data.cover,
       episodeCount: data.effectiveProgress.toString(),
       rating: data.rating,
       totalEpisodes: data.effectiveTotal,
@@ -67,6 +70,7 @@ class CardData {
           romajiTitle: data.romajiTitle ?? '',
           rating: data.rating ?? '',
           poster: data.poster ?? '',
+          cover: data.cover,
           mediaType: data.type == 'MANGA' ? ItemType.manga : ItemType.anime,
           nextAiringEpisode: data.nextAiringEpisode,
           status: data.mediaStatus ?? '?',
@@ -82,6 +86,7 @@ class CardData {
       id: data.id,
       title: data.displayTitle,
       poster: data.poster,
+      cover: data.cover,
       rating: data.rating,
       episodeCount: 'N/A',
       totalEpisodes: data.totalEpisodes,
@@ -150,6 +155,7 @@ class GridAnimeCard extends StatelessWidget {
       romajiTitle: media.data.romajiTitle,
       englishTitle: media.data.title,
       poster: media.poster,
+      cover: media.cover ?? media.data.cover,
       extraData: extraData,
       source: (media.data.sourceId != null && media.data.sourceId != 'N/A')
           ? media.data.sourceId

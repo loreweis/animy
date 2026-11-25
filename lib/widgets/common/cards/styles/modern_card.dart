@@ -65,7 +65,8 @@ class ModernCard extends CarouselCard {
         child: Stack(
           children: [
             MediaPoster(
-              imageUrl: itemData.poster ?? '',
+              imageUrl: getCardImageUrl(config.isLandscape),
+              errorImage: getCardErrorImageUrl(config.isLandscape),
               heroTag: tag,
               radius: 12,
               sourceId: itemData.source,

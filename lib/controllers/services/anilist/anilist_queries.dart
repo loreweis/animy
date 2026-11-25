@@ -149,6 +149,7 @@ const detailsSecondaryQuery = '''
                   romaji
                   english
                 }
+                bannerImage
                 coverImage {
                   large
                   color
@@ -211,6 +212,7 @@ const characterDetailsQuery = '''
               romaji
               native
             }
+            bannerImage
             coverImage {
               large
               color
@@ -313,6 +315,7 @@ const staffDetailsQuery = '''
               romaji
               native
             }
+            bannerImage
             coverImage {
               large
               color
