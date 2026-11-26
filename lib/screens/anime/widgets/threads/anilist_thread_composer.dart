@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/settings/settings.dart';
-import 'package:anymex/controllers/theme.dart';
+
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/screens/anime/widgets/comments/widgets/gif_picker_sheet.dart';
 import 'package:anymex/utils/theme_extensions.dart';
@@ -11,14 +11,10 @@ import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-bool _isAppOledDark(BuildContext context) {
+bool _isDetailsOledDark(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   if (!isDark) return false;
-  if (settingsController.detailsOledMode) return true;
-  if (Get.isRegistered<ThemeController>()) {
-    return Get.find<ThemeController>().isOled;
-  }
-  return false;
+  return settingsController.detailsOledMode;
 }
 
 /// Shared AniList Smart URL detector & Markdown toolbar used by both
@@ -163,7 +159,7 @@ class AnilistMarkdownToolbar extends StatelessWidget {
     VoidCallback? onBeforeInsert,
   }) async {
     final urlCtrl = TextEditingController();
-    final isOled = _isAppOledDark(context);
+    final isOled = _isDetailsOledDark(context);
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -606,7 +602,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isOled = _isAppOledDark(context);
+    final isOled = _isDetailsOledDark(context);
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = keyboardInset > 0;

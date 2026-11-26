@@ -910,7 +910,10 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
     return SliverMainAxisGroup(
       slivers: [
         SliverToBoxAdapter(
-          child: Obx(() => AnilistThreadsSection(media: controller.media.value)),
+          child: Obx(() => AnilistThreadsSection(
+                media: controller.media.value,
+                posterColorHex: _posterColor.value,
+              )),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],

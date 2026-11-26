@@ -1,6 +1,5 @@
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
 import 'package:anymex/controllers/settings/settings.dart';
-import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
@@ -11,7 +10,6 @@ import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class _ThreadCategoryDef {
   final int id;
@@ -19,41 +17,52 @@ class _ThreadCategoryDef {
   const _ThreadCategoryDef(this.id, this.name);
 }
 
-class AnilistCreateThreadPage extends StatefulWidget {
+class AnilistCreateThreadSheet extends StatefulWidget {
   final Media media;
   final int anilistMediaId;
+  final String posterColorHex;
   final ThemeData? inheritedTheme;
 
-  const AnilistCreateThreadPage({
+  const AnilistCreateThreadSheet({
     super.key,
     required this.media,
     required this.anilistMediaId,
+    this.posterColorHex = '',
     this.inheritedTheme,
   });
 
-  static Future<AnilistThread?> open(
+  static Future<AnilistThread?> show(
     BuildContext context, {
     required Media media,
     required int anilistMediaId,
+    String posterColorHex = '',
     ThemeData? inheritedTheme,
   }) {
-    return Navigator.of(context).push<AnilistThread>(
-      MaterialPageRoute(
-        builder: (_) => AnilistCreateThreadPage(
+    final detailsTheme = inheritedTheme ?? Theme.of(context);
+    return showModalBottomSheet<AnilistThread>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (_) => Theme(
+        data: detailsTheme,
+        child: AnilistCreateThreadSheet(
           media: media,
           anilistMediaId: anilistMediaId,
-          inheritedTheme: inheritedTheme ?? Theme.of(context),
+          posterColorHex: posterColorHex,
+          inheritedTheme: detailsTheme,
         ),
       ),
     );
   }
 
   @override
-  State<AnilistCreateThreadPage> createState() =>
-      _AnilistCreateThreadPageState();
+  State<AnilistCreateThreadSheet> createState() =>
+      _AnilistCreateThreadSheetState();
 }
 
-class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
+class _AnilistCreateThreadSheetState extends State<AnilistCreateThreadSheet> {
   static const List<_ThreadCategoryDef> _allCategories = [
     _ThreadCategoryDef(1, 'Anime'),
     _ThreadCategoryDef(2, 'Manga'),
@@ -94,12 +103,25 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
     super.dispose();
   }
 
-  bool _isOledDark(BuildContext context) {
+  Color _resolveDetailsBackground(BuildContext context) {
+    final colors = context.colors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (!isDark) return false;
-    if (settingsController.detailsOledMode) return true;
-    return Get.isRegistered<ThemeController>() &&
-        Get.find<ThemeController>().isOled;
+    final isDetailsOled = isDark && settingsController.detailsOledMode;
+    if (isDetailsOled) return Colors.black;
+
+    final blurScope = settingsController.detailsBlurScope;
+    if (blurScope == 2) {
+      final tintBlur = settingsController.tintBlur;
+      final baseArtworkColor = tintBlur
+          ? colors.primary
+          : (AnymeXScaffold.parseColor(widget.posterColorHex) ??
+              colors.primary);
+      return Color.alphaBlend(
+        baseArtworkColor.withValues(alpha: isDark ? 0.20 : 0.12),
+        colors.surface,
+      );
+    }
+    return colors.surface;
   }
 
   /// Mirrors AniList's dynamic category hiding rules when certain categories
@@ -109,7 +131,6 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
       return _allCategories;
     }
 
-    // Selecting an exclusive category hides all other categories.
     final selectedExclusive =
         _selectedCategories.where(_exclusiveIds.contains).toList();
     if (selectedExclusive.isNotEmpty) {
@@ -118,7 +139,6 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
           .toList();
     }
 
-    // Selecting Release Discussion hides everything except media-type categories.
     if (_selectedCategories.contains(_releaseDiscussionId)) {
       return _allCategories
           .where((c) =>
@@ -126,8 +146,6 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
           .toList();
     }
 
-    // Any non-exclusive category hides exclusive categories.
-    // Non-media categories also hide Release Discussion.
     final hasNonMedia =
         _selectedCategories.any((id) => !_mediaTypeIds.contains(id));
 
@@ -213,264 +231,302 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTheme = widget.inheritedTheme ?? Theme.of(context);
-    return Theme(
-      data: effectiveTheme,
-      child: Builder(builder: _buildPage),
-    );
-  }
-
-  Widget _buildPage(BuildContext context) {
     final colors = context.colors;
-    final isOled = _isOledDark(context);
-    final fieldBg = isOled
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDetailsOled = isDark && settingsController.detailsOledMode;
+    final sheetBg = _resolveDetailsBackground(context);
+    final fieldBg = isDetailsOled
         ? Colors.white.withValues(alpha: 0.04)
-        : colors.surfaceContainer.opaque(0.45, iReallyMeanIt: true);
+        : colors.onSurface.opaque(0.06, iReallyMeanIt: true);
     final borderCol = colors.onSurface.opaque(0.10, iReallyMeanIt: true);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
-    return AnymeXScaffold(
-      isOled: isOled,
-      disabled: isOled,
-      body: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: isOled ? Colors.black : Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          titleSpacing: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AnymeXText(
-                'New AniList Thread',
-                size: 16,
-                variant: TextVariant.bold,
-              ),
-              AnymeXText(
-                widget.media.displayTitle,
-                size: 11.5,
-                color: colors.onSurfaceVariant,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              tooltip: _isPreview ? 'Compose' : 'Preview',
-              icon: Icon(
-                _isPreview ? Icons.edit_rounded : Icons.preview_rounded,
-                color: _isPreview ? colors.primary : colors.onSurfaceVariant,
-              ),
-              onPressed: () {
-                setState(() => _isPreview = !_isPreview);
-                if (_isPreview) {
-                  _bodyFocusNode.unfocus();
-                } else {
-                  _bodyFocusNode.requestFocus();
-                }
-              },
+    return RepaintBoundary(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: Container(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: borderCol, width: 0.9),
+              left: BorderSide(color: borderCol, width: 0.5),
+              right: BorderSide(color: borderCol, width: 0.5),
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                children: [
-                  // Title input
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: fieldBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: borderCol),
-                    ),
-                    child: TextField(
-                      controller: _titleController,
-                      textInputAction: TextInputAction.next,
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      decoration: InputDecoration(
-                        filled: false,
-                        fillColor: Colors.transparent,
-                        isCollapsed: true,
-                        contentPadding: EdgeInsets.zero,
-                        hintText: 'Thread title',
-                        hintStyle: TextStyle(
-                          color: colors.onSurfaceVariant
-                              .opaque(0.7, iReallyMeanIt: true),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle + Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 10, 6),
+                  child: Column(
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colors.onSurfaceVariant
+                                .opaque(0.3, iReallyMeanIt: true),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const AnymeXText(
+                                  'New AniList Thread',
+                                  size: 16.5,
+                                  variant: TextVariant.bold,
+                                ),
+                                const SizedBox(height: 2),
+                                AnymeXText(
+                                  'Linked to ${widget.media.displayTitle}',
+                                  size: 11.5,
+                                  color: colors.onSurfaceVariant,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: _isPreview ? 'Compose' : 'Preview',
+                            icon: Icon(
+                              _isPreview
+                                  ? Icons.edit_outlined
+                                  : Icons.preview_outlined,
+                              size: 20,
+                              color: _isPreview
+                                  ? colors.primary
+                                  : colors.onSurfaceVariant,
+                            ),
+                            onPressed: () {
+                              setState(() => _isPreview = !_isPreview);
+                              if (_isPreview) {
+                                _bodyFocusNode.unfocus();
+                              } else {
+                                _bodyFocusNode.requestFocus();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
+                ),
 
-                  // Categories section (required by AniList, dynamic hiding rules)
-                  Row(
-                    children: [
-                      const AnymeXText(
-                        'Categories',
-                        size: 13,
-                        variant: TextVariant.bold,
-                      ),
-                      const SizedBox(width: 6),
-                      AnymeXText(
-                        '(${_selectedCategories.length}/2)',
-                        size: 11.5,
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final cat in _visibleCategories)
-                        _buildCategoryChip(context, cat),
-                    ],
-                  ),
-                  if (_categoryError != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
+                // Scrollable Fields: Title -> Write thread body -> Categories (below body)
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: 15,
-                          color: colors.error,
-                        ),
-                        const SizedBox(width: 6),
-                        AnymeXText(
-                          _categoryError!,
-                          size: 12,
-                          variant: TextVariant.semiBold,
-                          color: colors.error,
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 14),
-
-                  // Body input / Preview
-                  Container(
-                    constraints: const BoxConstraints(minHeight: 190),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: fieldBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: borderCol),
-                    ),
-                    child: _isPreview
-                        ? (_bodyController.text.trim().isEmpty
-                            ? AnymeXText(
-                                'Nothing to preview',
-                                size: 14,
-                                fontStyle: FontStyle.italic,
-                                color: colors.onSurfaceVariant,
-                              )
-                            : AnilistAboutMe(
-                                about: parseMarkdown(_bodyController.text),
-                              ))
-                        : TextField(
-                            controller: _bodyController,
-                            focusNode: _bodyFocusNode,
-                            minLines: 7,
-                            maxLines: null,
-                            keyboardType: TextInputType.multiline,
-                            textInputAction: TextInputAction.newline,
+                        // 1. Thread title
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: fieldBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: borderCol),
+                          ),
+                          child: TextField(
+                            controller: _titleController,
+                            textInputAction: TextInputAction.next,
                             style: TextStyle(
                               color: colors.onSurface,
                               fontSize: 14.5,
-                              height: 1.45,
+                              fontWeight: FontWeight.w600,
                             ),
                             decoration: InputDecoration(
                               filled: false,
                               fillColor: Colors.transparent,
                               isCollapsed: true,
                               contentPadding: EdgeInsets.zero,
-                              hintText: 'Write thread body',
+                              hintText: 'Thread title',
                               hintStyle: TextStyle(
                                 color: colors.onSurfaceVariant
                                     .opaque(0.7, iReallyMeanIt: true),
                                 fontSize: 14.5,
+                                fontWeight: FontWeight.w500,
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                             ),
                           ),
-                  ),
-                ],
-              ),
-            ),
+                        ),
+                        const SizedBox(height: 10),
 
-            // Bottom bar: Markdown toolbar directly above Post Thread button
-            SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                decoration: BoxDecoration(
-                  color: isOled ? Colors.black : colors.surfaceContainer,
-                  border: Border(
-                    top: BorderSide(color: borderCol, width: 0.8),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!_isPreview) ...[
-                      AnilistMarkdownToolbar(
-                        controller: _bodyController,
-                        focusNode: _bodyFocusNode,
-                        onBeforeInsert: () {
-                          if (_isPreview) {
-                            setState(() => _isPreview = false);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: FilledButton.icon(
-                        onPressed: _isSubmitting ? null : _submitThread,
-                        icon: _isSubmitting
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    colors.onPrimary,
+                        // 2. Write thread body / Preview
+                        Container(
+                          constraints: const BoxConstraints(minHeight: 130),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: fieldBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: borderCol),
+                          ),
+                          child: _isPreview
+                              ? (_bodyController.text.trim().isEmpty
+                                  ? AnymeXText(
+                                      'Nothing to preview',
+                                      size: 14,
+                                      fontStyle: FontStyle.italic,
+                                      color: colors.onSurfaceVariant,
+                                    )
+                                  : AnilistAboutMe(
+                                      about:
+                                          parseMarkdown(_bodyController.text),
+                                    ))
+                              : TextField(
+                                  controller: _bodyController,
+                                  focusNode: _bodyFocusNode,
+                                  minLines: 4,
+                                  maxLines: 8,
+                                  keyboardType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.newline,
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 14,
+                                    height: 1.4,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    isCollapsed: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    hintText: 'Write thread body',
+                                    hintStyle: TextStyle(
+                                      color: colors.onSurfaceVariant
+                                          .opaque(0.7, iReallyMeanIt: true),
+                                      fontSize: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
                                   ),
                                 ),
-                              )
-                            : const Icon(Icons.send_rounded, size: 18),
-                        label: Text(
-                          _isSubmitting ? 'Posting...' : 'Post Thread',
+                        ),
+                        const SizedBox(height: 12),
+
+                        // 3. Categories BELOW Write thread body
+                        Row(
+                          children: [
+                            const AnymeXText(
+                              'Categories',
+                              size: 12.5,
+                              variant: TextVariant.bold,
+                            ),
+                            const SizedBox(width: 6),
+                            AnymeXText(
+                              '(${_selectedCategories.length}/2)',
+                              size: 11.5,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 7,
+                          runSpacing: 7,
+                          children: [
+                            for (final cat in _visibleCategories)
+                              _buildCategoryChip(context, cat),
+                          ],
+                        ),
+                        if (_categoryError != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                size: 15,
+                                color: colors.error,
+                              ),
+                              const SizedBox(width: 6),
+                              AnymeXText(
+                                _categoryError!,
+                                size: 12,
+                                variant: TextVariant.semiBold,
+                                color: colors.error,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Bottom bar: MD toolbar directly above Post Thread button
+                Container(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: borderCol, width: 0.8),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_isPreview) ...[
+                        AnilistMarkdownToolbar(
+                          controller: _bodyController,
+                          focusNode: _bodyFocusNode,
+                          onBeforeInsert: () {
+                            if (_isPreview) {
+                              setState(() => _isPreview = false);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: FilledButton.icon(
+                          onPressed: _isSubmitting ? null : _submitThread,
+                          icon: _isSubmitting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      colors.onPrimary,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.send_rounded, size: 18),
+                          label: Text(
+                            _isSubmitting ? 'Posting...' : 'Post Thread',
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -481,14 +537,14 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
     final selected = _selectedCategories.contains(cat.id);
     return InkWell(
       onTap: () => _toggleCategory(cat.id),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(11),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? colors.primary.withValues(alpha: 0.18)
               : colors.onSurface.opaque(0.06, iReallyMeanIt: true),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(11),
           border: Border.all(
             color: selected
                 ? colors.primary
@@ -499,12 +555,12 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selected) ...[
-              Icon(Icons.check_rounded, size: 14, color: colors.primary),
-              const SizedBox(width: 5),
+              Icon(Icons.check_rounded, size: 13, color: colors.primary),
+              const SizedBox(width: 4),
             ],
             AnymeXText(
               cat.name,
-              size: 12,
+              size: 11.5,
               variant: selected ? TextVariant.bold : TextVariant.semiBold,
               color: selected ? colors.primary : colors.onSurfaceVariant,
             ),

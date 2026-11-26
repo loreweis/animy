@@ -4,10 +4,8 @@ import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/controllers/settings/settings.dart';
-import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_create_thread_page.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_detail_page.dart';
-import 'package:get/get.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_container.dart';
@@ -31,10 +29,12 @@ enum _ThreadSortOption {
 
 class AnilistThreadsSection extends StatefulWidget {
   final Media media;
+  final String posterColorHex;
 
   const AnilistThreadsSection({
     super.key,
     required this.media,
+    this.posterColorHex = '',
   });
 
   @override
@@ -148,6 +148,8 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     navigate(
       () => AnilistThreadDetailPage(
         initialThread: thread,
+        media: widget.media,
+        posterColorHex: widget.posterColorHex,
         inheritedTheme: detailsTheme,
         onThreadUpdated: (updated) {
           if (!mounted) return;
@@ -160,12 +162,10 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     );
   }
 
-  bool _isOledDark(BuildContext context) {
+  bool _isDetailsOled(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return false;
-    if (settingsController.detailsOledMode) return true;
-    return Get.isRegistered<ThemeController>() &&
-        Get.find<ThemeController>().isOled;
+    return settingsController.detailsOledMode;
   }
 
   Future<void> _showCreateThreadSheet() async {
@@ -178,10 +178,11 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
       return;
     }
 
-    final created = await AnilistCreateThreadPage.open(
+    final created = await AnilistCreateThreadSheet.show(
       context,
       media: widget.media,
       anilistMediaId: _anilistMediaId!,
+      posterColorHex: widget.posterColorHex,
       inheritedTheme: Theme.of(context),
     );
 
@@ -224,7 +225,7 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: _isOledDark(context)
+              color: _isDetailsOled(context)
                   ? Colors.white.withValues(alpha: 0.03)
                   : colors.surfaceContainer.opaque(0.35, iReallyMeanIt: true),
               borderRadius: BorderRadius.circular(16),
@@ -474,7 +475,7 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _isOledDark(context)
+        color: _isDetailsOled(context)
             ? Colors.white.withValues(alpha: 0.03)
             : colors.surfaceContainer.opaque(0.35, iReallyMeanIt: true),
         borderRadius: BorderRadius.circular(16),

@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
 import 'package:anymex/controllers/settings/settings.dart';
-import 'package:anymex/controllers/theme.dart';
+import 'package:anymex/database/data_keys/keys.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
+import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
 import 'package:anymex/screens/profile/user_profile_page.dart';
 import 'package:anymex/utils/al_about_me.dart';
@@ -11,6 +14,7 @@ import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
+import 'package:anymex/widgets/common/baked_blur_image.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,12 +22,16 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AnilistThreadDetailPage extends StatefulWidget {
   final AnilistThread initialThread;
+  final Media? media;
+  final String posterColorHex;
   final ValueChanged<AnilistThread>? onThreadUpdated;
   final ThemeData? inheritedTheme;
 
   const AnilistThreadDetailPage({
     super.key,
     required this.initialThread,
+    this.media,
+    this.posterColorHex = '',
     this.onThreadUpdated,
     this.inheritedTheme,
   });
@@ -414,12 +422,176 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     return formatTimeAgo(epochSeconds * 1000);
   }
 
-  bool _isOledDark(BuildContext context) {
+  bool _isDetailsOled(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return false;
-    if (settingsController.detailsOledMode) return true;
-    return Get.isRegistered<ThemeController>() &&
-        Get.find<ThemeController>().isOled;
+    return settingsController.detailsOledMode;
+  }
+
+  Widget _buildDetailsBackdrop(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDetailsOled = _isDetailsOled(context);
+    final blurScope = settingsController.detailsBlurScope;
+
+    if (isDetailsOled) {
+      return Container(color: Colors.black);
+    }
+
+    if (blurScope == 0) {
+      return Container(color: colors.surface);
+    }
+
+    final media = widget.media;
+    final posterUrl = media?.poster ?? '';
+    final effectiveCover =
+        (media?.cover?.isNotEmpty == true ? media!.cover! : posterUrl);
+    final usePoster = settingsController.usePosterForBlur;
+    final blurSourceUrl = usePoster ? posterUrl : effectiveCover;
+    final blurFallbackUrl = usePoster ? effectiveCover : posterUrl;
+    final tintBlur = settingsController.tintBlur;
+    final blurColor = tintBlur ? colors.primary.opaque(0.4) : null;
+    final isMesh = settingsController.detailsBlurStyle == 1;
+    final isBaked = isMesh || settingsController.useComputedBlur;
+    final blurAmount = UISettingsKeys.detailsBlurAmount.get<double>(20.0);
+    final brightness =
+        UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
+    final baseArtworkColor = tintBlur
+        ? colors.primary
+        : (AnymeXScaffold.parseColor(widget.posterColorHex) ?? colors.primary);
+    final gradientBgColor = Color.alphaBlend(
+      baseArtworkColor.withValues(alpha: isDark ? 0.20 : 0.12),
+      colors.surface,
+    );
+
+    Widget buildBlur({double? height}) {
+      if (blurSourceUrl.isEmpty) {
+        return Container(
+          height: height ?? double.infinity,
+          width: double.infinity,
+          color: gradientBgColor,
+        );
+      }
+      if (isBaked) {
+        return BakedBlurImage(
+          url: blurSourceUrl,
+          fallback: blurFallbackUrl,
+          saturation: 1.0,
+          blurAmount: blurAmount,
+          brightness: brightness,
+          color: blurColor,
+          fit: BoxFit.cover,
+          height: height,
+          width: double.infinity,
+          fadeBottom: true,
+          isMesh: isMesh,
+        );
+      }
+      return ColorFiltered(
+        colorFilter: ColorFilter.matrix([
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          brightness,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+        ]),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(
+            sigmaX: blurAmount,
+            sigmaY: blurAmount,
+          ),
+          child: AnymeXImage(
+            imageUrl: blurSourceUrl,
+            errorImage: blurFallbackUrl,
+            radius: 0,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: height ?? double.infinity,
+            color: blurColor,
+            memCacheWidth: 80,
+          ),
+        ),
+      );
+    }
+
+    if (blurScope == 2) {
+      final washHeight =
+          (MediaQuery.sizeOf(context).height * 0.48).clamp(320.0, 520.0);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(child: Container(color: gradientBgColor)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: washHeight,
+            child: RepaintBoundary(child: buildBlur(height: washHeight)),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: washHeight + 1.0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.30, 0.60, 0.85, 1.0],
+                  colors: [
+                    gradientBgColor.withValues(alpha: isDark ? 0.30 : 0.10),
+                    gradientBgColor.withValues(alpha: isDark ? 0.55 : 0.25),
+                    gradientBgColor.withValues(alpha: isDark ? 0.85 : 0.65),
+                    gradientBgColor,
+                    gradientBgColor,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // blurScope == 1: Full Screen Blur
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(child: RepaintBoundary(child: buildBlur())),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  colors.surface.withValues(alpha: 0.40),
+                  colors.surface.withValues(alpha: 0.65),
+                  colors.surface.withValues(alpha: 0.90),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -433,16 +605,29 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
 
   Widget _buildPage(BuildContext context) {
     final colors = context.colors;
-    final isOled = _isOledDark(context);
+    final isOled = _isDetailsOled(context);
 
     return AnymeXScaffold(
+      disabled: true,
       isOled: isOled,
-      disabled: isOled,
-      body: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: isOled ? Colors.black : Colors.transparent,
+      color: isOled ? '' : widget.posterColorHex,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: Obx(() {
+                final _ = settingsController.detailsOledMode;
+                final __ = settingsController.detailsBlurScope;
+                return _buildDetailsBackdrop(context);
+              }),
+            ),
+          ),
+          Scaffold(
+            resizeToAvoidBottomInset: false,
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           titleSpacing: 0,
           title: const AnymeXText(
@@ -630,13 +815,15 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
             ),
           ],
         ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildThreadPost(BuildContext context) {
     final colors = context.colors;
-    final isOled = _isOledDark(context);
+    final isOled = _isDetailsOled(context);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 6, 14, 10),
