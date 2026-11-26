@@ -23,7 +23,6 @@ import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/core/metadata/models/episode_metadata.dart';
 import 'package:anymex/core/metadata/episode_metadata_service.dart';
 import 'package:anymex/models/animethemes/anime_theme.dart';
-import 'package:anymex/screens/anime/widgets/comments/controller/comment_preloader.dart';
 import 'package:anymex/utils/anime_themes_api.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/logger.dart';
@@ -715,7 +714,6 @@ class MediaDetailsController extends GetxController {
           media.refresh();
         }
 
-        CommentPreloader.to.preloadComments(media.value);
       } catch (e) {
         if (_isStaleSourceRequest(reqId)) return;
         Logger.e('Failed to fetch details from mapped media: $e');

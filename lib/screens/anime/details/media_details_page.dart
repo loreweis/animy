@@ -7,16 +7,10 @@ import 'package:anymex/utils/media_share.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/anime/details/controller/media_details_controller.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:anymex/screens/anime/details/widgets/media_stats_section.dart';
 import 'package:anymex/screens/anime/details/widgets/media_characters_section.dart';
 import 'package:anymex/screens/anime/details/widgets/media_quick_actions.dart';
-import 'package:anymex/screens/anime/widgets/comments/comments_section.dart';
-import 'package:anymex/screens/anime/widgets/comments/controller/comment_preloader.dart';
-import 'package:anymex/screens/anime/widgets/comments/controller/comments_controller.dart';
-import 'package:anymex/screens/anime/widgets/comments/widgets/comment_input_bar.dart';
-import 'package:anymex/screens/anime/widgets/comments/widgets/leaderboard_sheet.dart';
-import 'package:anymex/widgets/common/policy_sheet.dart';
+import 'package:anymex/screens/anime/widgets/threads/anilist_threads_section.dart';
 import 'package:anymex/screens/anime/widgets/episode_section.dart';
 import 'package:anymex/screens/manga/widgets/chapter_section.dart';
 import 'package:anymex/utils/theme_extensions.dart';
@@ -94,26 +88,6 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
     return _posterSchemeCache.putIfAbsent(
       key,
       () => ColorScheme.fromSeed(brightness: brightness, seedColor: seed),
-    );
-  }
-
-  CommentSectionController get _commentController {
-    final media = widget.media;
-    final tag = media.uniqueId;
-    if (Get.isRegistered<CommentSectionController>(tag: tag)) {
-      return Get.find<CommentSectionController>(tag: tag);
-    }
-    final preloaded = CommentPreloader.to.getPreloadedController(tag);
-    if (preloaded != null) {
-      preloaded.updateProgress(controller.mediaProgress.value);
-      return preloaded;
-    }
-    return Get.put(
-      CommentSectionController(
-        media: media,
-        initialProgress: controller.mediaProgress.value,
-      ),
-      tag: tag,
     );
   }
 
@@ -240,12 +214,6 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
     _tabTransitionController.dispose();
     _mediaColorWorker?.dispose();
     Get.delete<MediaDetailsController>(tag: widget.tag);
-    final isPreloaded = CommentPreloader.to.isPreloaded(widget.media.uniqueId);
-    if (!isPreloaded &&
-        Get.isRegistered<CommentSectionController>(
-            tag: widget.media.uniqueId)) {
-      Get.delete<CommentSectionController>(tag: widget.media.uniqueId);
-    }
     if (Platform.isWindows) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AnymeXTitleBar.isTransparent.value = false;
@@ -446,7 +414,7 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
                                         visible: selected == 2,
                                         maintainState: true,
                                         sliver:
-                                            _buildCommentsTab(themedContext),
+                                            _buildThreadsTab(themedContext),
                                       )
                                     : const SliverToBoxAdapter(
                                         child: SizedBox.shrink()),
@@ -647,9 +615,9 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
         onTap: (index) => _onTabSelected(index),
       ),
       NavItem(
-        selectedIcon: HugeIcons.strokeRoundedComment01,
-        unselectedIcon: HugeIcons.strokeRoundedComment02,
-        label: context.l10n.comments,
+        selectedIcon: Icons.forum_rounded,
+        unselectedIcon: Icons.forum_outlined,
+        label: 'Threads',
         onTap: (index) => _onTabSelected(index),
       ),
     ];
@@ -938,272 +906,14 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
     );
   }
 
-  Widget _buildCommentsTab(BuildContext context) {
-    final commentCtrl = _commentController;
-    final colorScheme = Theme.of(context).colorScheme;
-    final media = controller.media.value;
-
-    final String formatName;
-    switch (media.mediaType) {
-      case ItemType.anime:
-        formatName = 'Anime';
-        break;
-      case ItemType.novel:
-        formatName = 'Novel';
-        break;
-      default:
-        formatName = 'Manga';
-        break;
-    }
-
+  Widget _buildThreadsTab(BuildContext context) {
     return SliverMainAxisGroup(
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest
-                    .opaque(0.25, iReallyMeanIt: true),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color:
-                      colorScheme.onSurface.opaque(0.08, iReallyMeanIt: true),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  if (media.poster.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: AnymeXImage(
-                        imageUrl: media.poster,
-                        width: 34,
-                        height: 46,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  else
-                    AnymeXContainer(
-                      width: 34,
-                      height: 46,
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Icon(
-                        Icons.forum_outlined,
-                        size: 20,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnymeXText(
-                          media.displayTitle.isNotEmpty
-                              ? media.displayTitle
-                              : 'Comments',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          size: 15,
-                          variant: TextVariant.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            AnymeXContainer(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              color:
-                                  colorScheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                              child: AnymeXText(
-                                formatName,
-                                size: 10,
-                                variant: TextVariant.bold,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Obx(() {
-                              final count = commentCtrl.commentCount.value;
-                              return AnymeXText(
-                                '$count ${count == 1 ? 'comment' : 'comments'}',
-                                size: 12,
-                                color: colorScheme.onSurfaceVariant,
-                              );
-                            }),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (sort) => commentCtrl.setSort(sort),
-                    icon: Icon(
-                      Icons.sort_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    tooltip: context.l10n.sortComments,
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'top',
-                        child: Row(
-                          children: [
-                            if (commentCtrl.currentSort.value == 'top')
-                              Icon(Icons.check_rounded,
-                                  size: 18, color: colorScheme.primary)
-                            else
-                              const SizedBox(width: 18),
-                            const SizedBox(width: 8),
-                            AnymeXText(context.l10n.topComments,
-                                maxLines: null),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'newest',
-                        child: Row(
-                          children: [
-                            if (commentCtrl.currentSort.value == 'newest')
-                              Icon(Icons.check_rounded,
-                                  size: 18, color: colorScheme.primary)
-                            else
-                              const SizedBox(width: 18),
-                            const SizedBox(width: 8),
-                            AnymeXText(context.l10n.newestFirst,
-                                maxLines: null),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'oldest',
-                        child: Row(
-                          children: [
-                            if (commentCtrl.currentSort.value == 'oldest')
-                              Icon(Icons.check_rounded,
-                                  size: 18, color: colorScheme.primary)
-                            else
-                              const SizedBox(width: 18),
-                            const SizedBox(width: 8),
-                            AnymeXText(context.l10n.oldestFirst,
-                                maxLines: null),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.emoji_events_outlined, size: 21),
-                    onPressed: () => LeaderboardSheet.show(context),
-                    tooltip: context.l10n.leaderboard,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.assignment_outlined, size: 20),
-                    onPressed: () =>
-                        showPolicySheet(context, PolicyType.commentRules),
-                    tooltip: context.l10n.commentRules,
-                  ),
-                  Obx(() => IconButton(
-                        icon: commentCtrl.isRefreshing.value
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              )
-                            : const Icon(Icons.refresh_rounded, size: 20),
-                        onPressed: commentCtrl.isRefreshing.value
-                            ? null
-                            : () => commentCtrl.forceRefresh(),
-                        tooltip: context.l10n.refreshComments,
-                      )),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Obx(() {
-            if (!serviceHandler.isLoggedIn.value) {
-              return _buildLoginToCommentCard(context);
-            }
-            return CommentInputBar(
-              controller: commentCtrl,
-              focusNode: commentCtrl.commentFocusNode,
-            );
-          }),
-        ),
-        SliverToBoxAdapter(
-          child: CommentSection(
-            media: media,
-            scrollToCommentId: widget.scrollToCommentId,
-            showInlineInput: false,
-            showHeader: false,
-          ),
+          child: Obx(() => AnilistThreadsSection(media: controller.media.value)),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],
-    );
-  }
-
-  Widget _buildLoginToCommentCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return AnymeXContainer(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color:
-          colorScheme.surfaceContainerHighest.opaque(0.25, iReallyMeanIt: true),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: colorScheme.onSurface.opaque(0.08, iReallyMeanIt: true),
-        width: 1,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.lock_outline_rounded,
-            size: 22,
-            color: colorScheme.primary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AnymeXText(
-              context.l10n.logInToJoinTheConversation,
-              size: 13,
-              color: colorScheme.onSurfaceVariant,
-              maxLines: 2,
-            ),
-          ),
-          const SizedBox(width: 12),
-          InkWell(
-            onTap: () => serviceHandler.login(context),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: colorScheme.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: AnymeXText(
-                context.l10n.logIn,
-                size: 13,
-                variant: TextVariant.semiBold,
-                color: colorScheme.onPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
