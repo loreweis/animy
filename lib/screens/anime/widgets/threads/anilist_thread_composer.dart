@@ -37,10 +37,13 @@ class AnilistThreadComposer extends StatefulWidget {
 
 class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
   bool _isPreview = false;
+  bool _hasContentState = false;
+  bool _isMultilineState = false;
 
   @override
   void initState() {
     super.initState();
+    _syncDerivedState();
     widget.controller.addListener(_onTextChanged);
   }
 
@@ -49,6 +52,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onTextChanged);
+      _syncDerivedState();
       widget.controller.addListener(_onTextChanged);
     }
   }
@@ -59,20 +63,36 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
     super.dispose();
   }
 
+  void _syncDerivedState() {
+    final raw = widget.controller.text;
+    _hasContentState = raw.trim().isNotEmpty;
+    _isMultilineState = _isPreview || raw.contains('\n') || raw.length > 36;
+  }
+
   void _onTextChanged() {
-    final hasContent = widget.controller.text.trim().isNotEmpty;
-    if (!hasContent && _isPreview) {
-      _isPreview = false;
+    final raw = widget.controller.text;
+    final nextHasContent = raw.trim().isNotEmpty;
+    final nextPreview = nextHasContent ? _isPreview : false;
+    final nextMultiline = nextPreview || raw.contains('\n') || raw.length > 36;
+
+    if (nextHasContent == _hasContentState &&
+        nextMultiline == _isMultilineState &&
+        nextPreview == _isPreview) {
+      return;
     }
-    if (mounted) setState(() {});
+
+    if (mounted) {
+      setState(() {
+        _hasContentState = nextHasContent;
+        _isMultilineState = nextMultiline;
+        _isPreview = nextPreview;
+      });
+    }
   }
 
-  bool get _hasContent => widget.controller.text.trim().isNotEmpty;
+  bool get _hasContent => _hasContentState;
 
-  bool get _isMultiline {
-    final txt = widget.controller.text;
-    return _isPreview || txt.contains('\n') || txt.length > 36;
-  }
+  bool get _isMultiline => _isMultilineState;
 
   String _plainSnippet(String html) {
     return html
@@ -94,7 +114,10 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
   }
 
   void _setPreviewMode(bool preview) {
-    setState(() => _isPreview = preview);
+    setState(() {
+      _isPreview = preview;
+      _syncDerivedState();
+    });
     if (preview) {
       widget.focusNode.unfocus();
     } else {
@@ -381,7 +404,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.28),
-                      blurRadius: 18,
+                      blurRadius: 8,
                       offset: const Offset(0, 6),
                     ),
                   ],
@@ -417,7 +440,8 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
       );
     }
 
-    return SafeArea(
+    return RepaintBoundary(
+      child: SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
@@ -435,7 +459,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.32),
-                    blurRadius: 20,
+                    blurRadius: 8,
                     offset: const Offset(0, 6),
                   ),
                 ],
@@ -744,6 +768,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

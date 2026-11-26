@@ -39,7 +39,8 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
 
   final TextEditingController _replyController = TextEditingController();
   final FocusNode _replyFocusNode = FocusNode();
-  AnilistThreadComment? _replyingTo;
+  final ValueNotifier<AnilistThreadComment?> _replyingToNotifier =
+      ValueNotifier<AnilistThreadComment?>(null);
   bool _isSendingReply = false;
   final Set<int> _collapsedCommentIds = {};
 
@@ -61,6 +62,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   void dispose() {
     _replyController.dispose();
     _replyFocusNode.dispose();
+    _replyingToNotifier.dispose();
     super.dispose();
   }
 
@@ -294,7 +296,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     final saved = await AnilistThreadsService.saveThreadComment(
       threadId: _thread.id,
       comment: text,
-      parentCommentId: _replyingTo?.id,
+      parentCommentId: _replyingToNotifier.value?.id,
     );
     if (!mounted) return;
 
@@ -302,8 +304,8 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     if (saved != null) {
       _replyController.clear();
       _replyFocusNode.unfocus();
+      _replyingToNotifier.value = null;
       setState(() {
-        _replyingTo = null;
         _thread = _thread.copyWith(replyCount: _thread.replyCount + 1);
       });
       widget.onThreadUpdated?.call(_thread);
@@ -339,6 +341,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     final colors = context.colors;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: colors.surface,
@@ -370,7 +373,8 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: RefreshIndicator(
+            child: RepaintBoundary(
+              child: RefreshIndicator(
               onRefresh: () => _loadInitial(refreshThread: true),
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -452,36 +456,17 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                 ],
               ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    colors.surface.withValues(alpha: 0.0),
-                    colors.surface.withValues(alpha: 0.85),
-                    colors.surface,
-                  ],
-                  stops: const [0.0, 0.45, 1.0],
-                ),
-              ),
-              padding: const EdgeInsets.only(top: 16),
-              child: AnilistThreadComposer(
-                controller: _replyController,
-                focusNode: _replyFocusNode,
-                replyingTo: _replyingTo,
-                onCancelReply: () => setState(() => _replyingTo = null),
-                onSend: _submitReply,
-                isSending: _isSendingReply,
-                isLocked: _thread.isLocked,
-                hasAuthToken: AnilistThreadsService.hasAnilistToken,
-              ),
             ),
+          ),
+          _KeyboardFloatingComposer(
+            surfaceColor: colors.surface,
+            controller: _replyController,
+            focusNode: _replyFocusNode,
+            replyingToNotifier: _replyingToNotifier,
+            onSend: _submitReply,
+            isSending: _isSendingReply,
+            isLocked: _thread.isLocked,
+            hasAuthToken: AnilistThreadsService.hasAnilistToken,
           ),
         ],
       ),
@@ -497,7 +482,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       snackBar('Log in to AniList to post comments');
       return;
     }
-    setState(() => _replyingTo = null);
+    _replyingToNotifier.value = null;
     _replyFocusNode.requestFocus();
   }
 
@@ -736,7 +721,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     final isTopLevel = depth == 0;
     final isOwn = _currentUserId != null && comment.userId == _currentUserId;
     final isOp = _thread.userId > 0 && comment.userId == _thread.userId;
-    final isReplyTarget = _replyingTo?.id == comment.id;
     final hasChildren = comment.childComments.isNotEmpty;
     final isCollapsed = _collapsedCommentIds.contains(comment.id);
     final totalReplies = hasChildren ? _countDescendants(comment) : 0;
@@ -747,30 +731,37 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       _ => colors.tertiary.withValues(alpha: 0.45),
     };
 
-    final cardColor = isReplyTarget
-        ? colors.primary.withValues(alpha: 0.12)
-        : (isTopLevel
-            ? colors.surfaceContainerHighest.opaque(0.30, iReallyMeanIt: true)
-            : colors.surfaceContainer.opaque(0.55, iReallyMeanIt: true));
+    final bodyWidget = AnilistAboutMe(about: comment.commentHtml);
 
-    final cardBorderColor = isReplyTarget
-        ? colors.primary.withValues(alpha: 0.65)
-        : (isTopLevel
-            ? colors.outlineVariant.opaque(0.28, iReallyMeanIt: true)
-            : colors.outlineVariant.opaque(0.16, iReallyMeanIt: true));
+    final card = ValueListenableBuilder<AnilistThreadComment?>(
+      valueListenable: _replyingToNotifier,
+      child: bodyWidget,
+      builder: (context, activeReplyTarget, cachedBody) {
+        final isReplyTarget = activeReplyTarget?.id == comment.id;
+        final cardColor = isReplyTarget
+            ? colors.primary.withValues(alpha: 0.12)
+            : (isTopLevel
+                ? colors.surfaceContainerHighest
+                    .opaque(0.30, iReallyMeanIt: true)
+                : colors.surfaceContainer.opaque(0.55, iReallyMeanIt: true));
 
-    final card = AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: EdgeInsets.all(isTopLevel ? 14 : 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(isTopLevel ? 16 : 12),
-        border: Border.all(
-          color: cardBorderColor,
-          width: isReplyTarget ? 1.4 : 1.0,
-        ),
-      ),
-      child: Column(
+        final cardBorderColor = isReplyTarget
+            ? colors.primary.withValues(alpha: 0.65)
+            : (isTopLevel
+                ? colors.outlineVariant.opaque(0.28, iReallyMeanIt: true)
+                : colors.outlineVariant.opaque(0.16, iReallyMeanIt: true));
+
+        return Container(
+          padding: EdgeInsets.all(isTopLevel ? 14 : 10),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(isTopLevel ? 16 : 12),
+            border: Border.all(
+              color: cardBorderColor,
+              width: isReplyTarget ? 1.4 : 1.0,
+            ),
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isTopLevel &&
@@ -912,14 +903,12 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   message: 'Reply',
                   child: InkWell(
                     onTap: () {
-                      setState(() {
-                        if (_replyingTo?.id == comment.id) {
-                          _replyingTo = null;
-                        } else {
-                          _replyingTo = comment;
-                          _replyFocusNode.requestFocus();
-                        }
-                      });
+                      if (_replyingToNotifier.value?.id == comment.id) {
+                        _replyingToNotifier.value = null;
+                      } else {
+                        _replyingToNotifier.value = comment;
+                        _replyFocusNode.requestFocus();
+                      }
                     },
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
@@ -959,7 +948,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
             ],
           ),
           SizedBox(height: isTopLevel ? 10 : 7),
-          AnilistAboutMe(about: comment.commentHtml),
+          cachedBody!,
           // Bottom row (former love button spot): indicator + count ONLY (no "reply/replies/hide" text)
           if (hasChildren) ...[
             const SizedBox(height: 8),
@@ -1004,7 +993,9 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
             ),
           ],
         ],
-      ),
+          ),
+        );
+      },
     );
 
     final childrenWidget = (hasChildren && !isCollapsed)
@@ -1040,7 +1031,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
           )
         : const SizedBox.shrink();
 
-    return Padding(
+    final node = Padding(
       padding: EdgeInsets.only(top: isTopLevel ? 10.0 : 0.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1050,6 +1041,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
         ],
       ),
     );
+    return isTopLevel ? RepaintBoundary(child: node) : node;
   }
 
   Widget _avatar(BuildContext context, String? url, {double size = 28}) {
@@ -1105,6 +1097,74 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
             color: highlight ? colors.primary : colors.onSurfaceVariant,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _KeyboardFloatingComposer extends StatelessWidget {
+  final Color surfaceColor;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueNotifier<AnilistThreadComment?> replyingToNotifier;
+  final Future<void> Function() onSend;
+  final bool isSending;
+  final bool isLocked;
+  final bool hasAuthToken;
+
+  const _KeyboardFloatingComposer({
+    required this.surfaceColor,
+    required this.controller,
+    required this.focusNode,
+    required this.replyingToNotifier,
+    required this.onSend,
+    required this.isSending,
+    required this.isLocked,
+    required this.hasAuthToken,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: bottomInset,
+      child: RepaintBoundary(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                surfaceColor.withValues(alpha: 0.0),
+                surfaceColor.withValues(alpha: 0.88),
+                surfaceColor,
+              ],
+              stops: const [0.0, 0.45, 1.0],
+            ),
+          ),
+          padding: const EdgeInsets.only(top: 12),
+          child: MediaQuery.removePadding(
+            context: context,
+            removeBottom: bottomInset > 0,
+            child: ValueListenableBuilder<AnilistThreadComment?>(
+              valueListenable: replyingToNotifier,
+              builder: (context, replyingTo, _) {
+                return AnilistThreadComposer(
+                controller: controller,
+                focusNode: focusNode,
+                replyingTo: replyingTo,
+                onCancelReply: () => replyingToNotifier.value = null,
+                onSend: onSend,
+                isSending: isSending,
+                isLocked: isLocked,
+                hasAuthToken: hasAuthToken,
+              );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
