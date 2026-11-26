@@ -442,7 +442,7 @@ class _MainAppState extends State<MainApp> {
         child: GetMaterialApp(
           scrollBehavior: MyCustomScrollBehavior(),
           debugShowCheckedModeBanner: false,
-          title: "AnymeX",
+          title: "MySync",
           localizationsDelegates: const [
             ...AppLocalizations.localizationsDelegates,
             EnglishMaterialDelegate(),

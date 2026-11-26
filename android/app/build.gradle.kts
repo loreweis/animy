@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.ryan.anymex"
+        applicationId = "com.animy.sync"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

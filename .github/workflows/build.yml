@@ -117,19 +117,19 @@ jobs:
           flutter pub get
           flutter build apk --release --target-platform android-arm64 --split-per-abi
           cd build/app/outputs/flutter-apk
-          mv app-arm64-v8a-release.apk AnymeX-Android-arm64-v8a.apk
+          mv app-arm64-v8a-release.apk MySync-Android-arm64-v8a.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-arm64
-          path: build/app/outputs/flutter-apk/AnymeX-Android-arm64-v8a.apk
+          path: build/app/outputs/flutter-apk/MySync-Android-arm64-v8a.apk
 
       - name: Publish Mutable Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          APK_PATH="build/app/outputs/flutter-apk/AnymeX-Android-arm64-v8a.apk"
+          APK_PATH="build/app/outputs/flutter-apk/MySync-Android-arm64-v8a.apk"
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             RELEASE_TAG="${{ github.ref_name }}"
           else
@@ -141,12 +141,12 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber
             gh release edit "$RELEASE_TAG" \
-              --title "AnymeX Android arm64 ($RELEASE_TAG)" \
+              --title "MySync Android arm64 ($RELEASE_TAG)" \
               --notes "Mutable Android arm64-v8a build from commit \`${{ github.sha }}\`." \
               --latest
           else
             gh release create "$RELEASE_TAG" "$APK_PATH" \
-              --title "AnymeX Android arm64 ($RELEASE_TAG)" \
+              --title "MySync Android arm64 ($RELEASE_TAG)" \
               --notes "Mutable Android arm64-v8a build from commit \`${{ github.sha }}\`." \
               --latest
           fi
