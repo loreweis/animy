@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:anymex/controllers/settings/settings.dart';
 import 'package:anymex/models/models_convertor/carousel/carousel_data.dart';
+import 'package:anymex/models/models_convertor/carousel_mapper.dart';
 import 'package:anymex/controllers/source/source_controller.dart';
 import 'package:anymex/database/isar_models/offline_media.dart';
 import 'package:anymex/models/Media/media.dart';
@@ -311,8 +312,18 @@ class _LibraryContent extends StatelessWidget {
 
   void _handleItemTap(BuildContext context, OfflineMedia item,
       List<OfflineMedia> items, int index, String tag) {
-    final heroToCover = settingsController.customCardStyle.isLandscape &&
-        CarouselData.isValidImageUrl(item.cover);
+    final isManga = !controller.type.value.isAnime;
+    final resolvedCover = item
+        .toCarouselData(isManga: isManga)
+        .resolvedLandscapeCover(
+          isManga: isManga,
+          scheduleFetch: false,
+        );
+    if (resolvedCover != null) {
+      item.cover = resolvedCover;
+    }
+    final heroToCover =
+        settingsController.customCardStyle.isLandscape && resolvedCover != null;
     if (controller.type.value.isAnime) {
       navigateWithAnimation(() => AnimeDetailsPage(
           media: Media.fromOfflineMedia(item, ItemType.anime),

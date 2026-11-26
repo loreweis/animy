@@ -94,9 +94,9 @@ class DefaultCard extends CarouselCard {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
               child: MediaPoster(
-                imageUrl: getCardImageUrl(config.isLandscape),
-                errorImage: getCardErrorImageUrl(config.isLandscape),
-                useCoverHero: usesCoverHero(config.isLandscape),
+                imageUrl: getCardImageUrl(config.isLandscape, isManga: type != ItemType.anime),
+                errorImage: getCardErrorImageUrl(config.isLandscape, isManga: type != ItemType.anime),
+                useCoverHero: usesCoverHero(config.isLandscape, isManga: type != ItemType.anime),
                 heroTag: tag,
                 radius: 0,
                 sourceId: itemData.source,

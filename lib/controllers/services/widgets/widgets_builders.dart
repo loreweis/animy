@@ -397,8 +397,17 @@ class _UnderratedCard extends StatelessWidget {
   void _navigateToDetails(BuildContext context) {
     final media = item.media;
     final tag = 'underrated-${media.id}';
-    final heroToCover = settingsController.customCardStyle.isLandscape &&
-        CarouselData.isValidImageUrl(media.cover);
+    final resolvedCover = item
+        .toCarouselData(isManga: type == ItemType.manga)
+        .resolvedLandscapeCover(
+          isManga: type == ItemType.manga,
+          scheduleFetch: false,
+        );
+    if (resolvedCover != null) {
+      media.cover = resolvedCover;
+    }
+    final heroToCover =
+        settingsController.customCardStyle.isLandscape && resolvedCover != null;
     if (type == ItemType.novel) {
       navigateWithAnimation(() => NovelDetailsPage(
             media: media,

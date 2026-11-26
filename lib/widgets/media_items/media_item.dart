@@ -168,8 +168,17 @@ class GridAnimeCard extends StatelessWidget {
     final prefix = tagPrefix != null ? '${tagPrefix!}-' : '';
     final heroTag = '$prefix${media.id}-${itemType.name}-grid-card';
 
+    final isMangaItem = itemType != ItemType.anime;
+    final resolvedCover = carouselData.resolvedLandscapeCover(
+      isManga: isMangaItem,
+      scheduleFetch: false,
+    );
+    if (resolvedCover != null) {
+      media.data.cover = resolvedCover;
+    }
     final heroToCover = carouselData.usesCover(
       isLandscape: settingsController.customCardStyle.isLandscape,
+      isManga: isMangaItem,
     );
 
     final cardWidget = MediaCardGate(

@@ -404,8 +404,17 @@ class _SeeAllCard extends StatelessWidget {
   void _navigateToDetails() {
     final media = item.media;
     final tag = 'community-all-${media.id}';
-    final heroToCover = settingsController.customCardStyle.isLandscape &&
-        CarouselData.isValidImageUrl(media.cover);
+    final resolvedCover = item
+        .toCarouselData(isManga: type == ItemType.manga)
+        .resolvedLandscapeCover(
+          isManga: type == ItemType.manga,
+          scheduleFetch: false,
+        );
+    if (resolvedCover != null) {
+      media.cover = resolvedCover;
+    }
+    final heroToCover =
+        settingsController.customCardStyle.isLandscape && resolvedCover != null;
     if (type == ItemType.manga) {
       navigateWithAnimation(() => MangaDetailsPage(
             media: media,

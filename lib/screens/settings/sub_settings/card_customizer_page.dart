@@ -57,6 +57,8 @@ class _CardCustomizerPageState extends State<CardCustomizerPage> {
               title: context.l10n.soloLevelingSeason2AriseFrom,
               poster:
                   'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx176496-zEa7w0t8V90a.jpg',
+              cover:
+                  'https://s4.anilist.co/file/anilistcdn/media/anime/banner/176496-m8v886b3aR44.jpg',
               extraData: '8.6',
               source: '12',
               releasing: true,
@@ -67,6 +69,8 @@ class _CardCustomizerPageState extends State<CardCustomizerPage> {
               title: context.l10n.frierenBeyondJourneySEnd,
               poster:
                   'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-n2bJDnUhdwio.png',
+              cover:
+                  'https://s4.anilist.co/file/anilistcdn/media/anime/banner/154587-ivXNJ23SM1xB.jpg',
               extraData: '9.3',
               source: '28',
               releasing: false,
@@ -77,6 +81,8 @@ class _CardCustomizerPageState extends State<CardCustomizerPage> {
               title: context.l10n.bleachThousandYearBloodWar,
               poster:
                   'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx114446-2t352pD3F95p.jpg',
+              cover:
+                  'https://s4.anilist.co/file/anilistcdn/media/anime/banner/114446-3K66z2k8mH3F.jpg',
               extraData: '8.8',
               source: '14',
               releasing: true,

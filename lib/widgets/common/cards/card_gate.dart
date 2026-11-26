@@ -1,5 +1,7 @@
 import 'package:anymex/controllers/service_handler/service_handler.dart';
+import 'package:anymex/controllers/services/anilist/anilist_banner_resolver.dart';
 import 'package:anymex/controllers/settings/settings.dart';
+import 'package:get/get.dart';
 import 'package:anymex/database/isar_models/offline_media.dart';
 import 'package:anymex/models/models_convertor/carousel/carousel_data.dart';
 import 'package:anymex/utils/extension_utils.dart';
@@ -58,7 +60,11 @@ class MediaCardGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return getCard(context);
+    return Obx(() {
+      final _ = settingsController.customCardStyle;
+      final __ = AnilistBannerResolver.instance.version.value;
+      return getCard(context);
+    });
   }
 
   Widget getCard(BuildContext context) {
@@ -83,11 +89,18 @@ class MediaCardGate extends StatelessWidget {
   }
 
   CarouselData convertData(OfflineMedia data, {bool isManga = false}) {
+    final resolvedService = (data.serviceIndex != null &&
+            data.serviceIndex! >= 0 &&
+            data.serviceIndex! < ServicesType.values.length)
+        ? ServicesType.values[data.serviceIndex!]
+        : serviceHandler.serviceType.value;
     return CarouselData(
       title: data.displayTitle,
       romajiTitle: data.jname ?? data.japanese,
       englishTitle: data.english ?? data.name,
-      id: data.id.toString(),
+      id: (data.mediaId != null && data.mediaId!.isNotEmpty)
+          ? data.mediaId!
+          : data.id.toString(),
       poster: data.poster,
       cover: data.cover,
       extraData: data.rating,
@@ -96,7 +109,7 @@ class MediaCardGate extends StatelessWidget {
               : data.currentEpisode?.number) ??
           '1',
       releasing: data.status == "RELEASING",
-      servicesType: serviceHandler.serviceType.value,
+      servicesType: resolvedService,
     );
   }
 }

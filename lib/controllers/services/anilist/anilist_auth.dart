@@ -2091,8 +2091,8 @@ class AnilistAuth extends GetxController {
     final userId = profileData.value.id;
     if (userId == null) return;
 
-    final animeCacheKey = 'user_anime_list_$userId';
-    final mangaCacheKey = 'user_manga_list_$userId';
+    final animeCacheKey = 'user_anime_list_v2_$userId';
+    final mangaCacheKey = 'user_manga_list_v2_$userId';
 
     if (!force) {
       final cachedAnime = await AnilistCache.instance.get(animeCacheKey);
@@ -2287,7 +2287,7 @@ class AnilistAuth extends GetxController {
       return;
     }
 
-    final cacheKey = 'user_anime_list_$userId';
+    final cacheKey = 'user_anime_list_v2_$userId';
     if (!force) {
       final cached = await AnilistCache.instance.get(cacheKey);
       if (cached != null) {
@@ -2688,7 +2688,7 @@ class AnilistAuth extends GetxController {
       return;
     }
 
-    final cacheKey = 'user_manga_list_$userId';
+    final cacheKey = 'user_manga_list_v2_$userId';
     if (!force) {
       final cached = await AnilistCache.instance.get(cacheKey);
       if (cached != null) {

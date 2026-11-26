@@ -8,6 +8,7 @@ import 'package:anymex/controllers/cacher/cache_controller.dart';
 import 'package:anymex/controllers/offline/offline_storage_controller.dart';
 import 'package:anymex/controllers/service_handler/params.dart';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
+import 'package:anymex/controllers/services/anilist/anilist_banner_resolver.dart';
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/services/anilist/anilist_data.dart';
 import 'package:anymex/controllers/services/jikan.dart';
@@ -485,12 +486,19 @@ class MediaDetailsController extends GetxController {
           type: initialMedia.mediaType,
         ),
       );
+      final prevCover = media.value.cover;
       final prevAlt = media.value.altMediaContent;
       final prevStaff = media.value.staff;
       final prevFriends = media.value.friendsWatching;
       final prevRelations = media.value.relations;
       final prevRecs = media.value.recommendations;
       media.value = fullMedia;
+      if (AnilistBannerResolver.isLandscapeBannerUrl(prevCover,
+              poster: media.value.poster) &&
+          !AnilistBannerResolver.isLandscapeBannerUrl(media.value.cover,
+              poster: media.value.poster)) {
+        media.value.cover = prevCover;
+      }
       if (prevAlt != null && media.value.altMediaContent == null) {
         media.value.altMediaContent = prevAlt;
       }

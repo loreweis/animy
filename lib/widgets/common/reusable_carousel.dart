@@ -199,9 +199,18 @@ class _ReusableCarouselState extends State<ReusableCarousel> {
 
     final controller = Get.find<SourceController>();
     final ItemType mediaType = _determineItemType(itemData);
+    final isManga = mediaType != ItemType.anime;
     final media = Media.fromCarouselData(itemData, mediaType);
+    final resolvedCover = itemData.resolvedLandscapeCover(
+      isManga: isManga,
+      scheduleFetch: false,
+    );
+    if (resolvedCover != null) {
+      media.cover = resolvedCover;
+    }
     final heroToCover = itemData.usesCover(
       isLandscape: settingsController.customCardStyle.isLandscape,
+      isManga: isManga,
     );
 
     void onTapHandler() {

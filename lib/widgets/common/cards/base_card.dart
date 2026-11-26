@@ -16,16 +16,19 @@ abstract class CarouselCard extends StatelessWidget {
 
   bool isDesktop(BuildContext context) => MediaQuery.sizeOf(context).width > 600;
 
-  String getCardImageUrl(bool isLandscape) {
-    return itemData.imageFor(isLandscape: isLandscape);
+  String getCardImageUrl(bool isLandscape, {bool isManga = false}) {
+    return itemData.imageFor(isLandscape: isLandscape, isManga: isManga);
   }
 
-  String? getCardErrorImageUrl(bool isLandscape) {
-    return itemData.fallbackImageFor(isLandscape: isLandscape);
+  String? getCardErrorImageUrl(bool isLandscape, {bool isManga = false}) {
+    return itemData.fallbackImageFor(
+      isLandscape: isLandscape,
+      isManga: isManga,
+    );
   }
 
-  bool usesCoverHero(bool isLandscape) {
-    return itemData.usesCover(isLandscape: isLandscape);
+  bool usesCoverHero(bool isLandscape, {bool isManga = false}) {
+    return itemData.usesCover(isLandscape: isLandscape, isManga: isManga);
   }
 
   bool shouldShowTitle() {

@@ -369,7 +369,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
 
   Future<void> _paintCached() async {
     try {
-      final animeCached = await ColdCache.read('anilist_anime_home');
+      final animeCached = await ColdCache.read('anilist_anime_home_v2');
       if (animeCached != null) {
         if (animeCached['upcomingAnimes']?['media'] != null) {
           upcomingAnimes.value =
@@ -392,7 +392,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
               parseMediaList(animeCached['recentlyUpdatedAnimes']['media']);
         }
       }
-      final mangaCached = await ColdCache.read('anilist_manga_home');
+      final mangaCached = await ColdCache.read('anilist_manga_home_v2');
       if (mangaCached != null) {
         if (mangaCached['popularMangas']?['media'] != null) {
           popularMangas.value =
@@ -446,7 +446,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
 
   Future<void> fetchAnilistHomepage({bool force = false}) async {
     if (!force) {
-      final cached = await AnilistCache.instance.get('anilist_anime_home');
+      final cached = await AnilistCache.instance.get('anilist_anime_home_v2');
       if (cached != null) {
         if (cached['upcomingAnimes']?['media'] != null) {
           upcomingAnimes.value =
@@ -603,9 +603,9 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
       final Map<String, dynamic> responseJson =
           await compute(_parseJson, response.body);
       final responseData = responseJson['data'];
-      ColdCache.write('anilist_anime_home', responseData);
+      ColdCache.write('anilist_anime_home_v2', responseData);
       AnilistCache.instance.put(
-        'anilist_anime_home',
+        'anilist_anime_home_v2',
         responseData,
         ttl: const Duration(hours: 2),
         persist: true,
@@ -629,7 +629,7 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
 
   Future<void> fetchAnilistMangaPage({bool force = false}) async {
     if (!force) {
-      final cached = await AnilistCache.instance.get('anilist_manga_home');
+      final cached = await AnilistCache.instance.get('anilist_manga_home_v2');
       if (cached != null) {
         if (cached['popularMangas']?['media'] != null) {
           popularMangas.value =
@@ -853,9 +853,9 @@ averageScore
       final Map<String, dynamic> responsee =
           await compute(_parseJson, response.body);
       final responseData = responsee['data'];
-      ColdCache.write('anilist_manga_home', responseData);
+      ColdCache.write('anilist_manga_home_v2', responseData);
       AnilistCache.instance.put(
-        'anilist_manga_home',
+        'anilist_manga_home_v2',
         responseData,
         ttl: const Duration(hours: 2),
         persist: true,
@@ -1803,8 +1803,8 @@ averageScore
     AnilistCache.instance.invalidatePrefix('user_anime_list');
     AnilistCache.instance.invalidatePrefix('user_manga_list');
     AnilistCache.instance.invalidate('user_profile');
-    AnilistCache.instance.invalidate('anilist_anime_home');
-    AnilistCache.instance.invalidate('anilist_manga_home');
+    AnilistCache.instance.invalidate('anilist_anime_home_v2');
+    AnilistCache.instance.invalidate('anilist_manga_home_v2');
     await Future.wait([
       anilistAuth.fetchUserAnimeList(force: true),
       anilistAuth.fetchUserMangaList(force: true),
