@@ -3819,7 +3819,10 @@ class _UserProfileSheet extends StatelessWidget {
 
   const _UserProfileSheet({
     required this.username,
-  }) : avatarUrl = null : decorationUrl : userRole;
+    this.avatarUrl,
+    this.decorationUrl,
+    this.userRole,
+  });
 
   Color _getRoleColor(BuildContext context, String role) {
     return CommentumRoleConfig.getRoleColor(context, role);
