@@ -139,41 +139,6 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     });
   }
 
-  Future<void> _toggleThreadLike(AnilistThread thread) async {
-    if (!AnilistThreadsService.hasAnilistToken) {
-      snackBar('Log in to AniList to like threads');
-      return;
-    }
-    final idx = _threads.indexWhere((t) => t.id == thread.id);
-    if (idx == -1) return;
-
-    final prev = _threads[idx];
-    final optimistic = prev.copyWith(
-      isLiked: !prev.isLiked,
-      likeCount: prev.isLiked
-          ? (prev.likeCount - 1).clamp(0, 1 << 30)
-          : prev.likeCount + 1,
-    );
-    setState(() => _threads[idx] = optimistic);
-
-    final res = await AnilistThreadsService.toggleThreadLike(thread.id);
-    if (!mounted) return;
-    final currentIdx = _threads.indexWhere((t) => t.id == thread.id);
-    if (currentIdx == -1) return;
-
-    if (res != null) {
-      setState(() {
-        _threads[currentIdx] = _threads[currentIdx].copyWith(
-          likeCount: res.likeCount,
-          isLiked: res.isLiked,
-        );
-      });
-    } else {
-      setState(() => _threads[currentIdx] = prev);
-      errorSnackBar('Failed to toggle like');
-    }
-  }
-
   void _openThread(AnilistThread thread) {
     navigate(
       () => AnilistThreadDetailPage(
@@ -640,9 +605,58 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Row 1: Title on left | Views then Comments on right (no love)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: AnymeXText(
+                        thread.title,
+                        size: 14.5,
+                        variant: TextVariant.bold,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.visibility_outlined,
+                            size: 14,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          AnymeXText(
+                            _formatCount(thread.viewCount),
+                            size: 11.5,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 10),
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 14,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          AnymeXText(
+                            _formatCount(thread.replyCount),
+                            size: 11.5,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                // Row 2: Thread categories below title
                 if (thread.isSticky ||
                     thread.isLocked ||
                     thread.categories.isNotEmpty) ...[
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -664,15 +678,8 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                         if (cat.name.isNotEmpty) _chip(context, cat.name),
                     ],
                   ),
-                  const SizedBox(height: 8),
                 ],
-                AnymeXText(
-                  thread.title,
-                  size: 14.5,
-                  variant: TextVariant.bold,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                // Row 3: Latest comment/reply below categories
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -704,66 +711,6 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        InkWell(
-                          onTap: () => _toggleThreadLike(thread),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  thread.isLiked
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  size: 14,
-                                  color: thread.isLiked
-                                      ? colors.primary
-                                      : colors.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 3),
-                                AnymeXText(
-                                  _formatCount(thread.likeCount),
-                                  size: 11,
-                                  color: thread.isLiked
-                                      ? colors.primary
-                                      : colors.onSurfaceVariant,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: 14,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 3),
-                        AnymeXText(
-                          _formatCount(thread.replyCount),
-                          size: 11,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.visibility_outlined,
-                          size: 14,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 3),
-                        AnymeXText(
-                          _formatCount(thread.viewCount),
-                          size: 11,
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ],
                     ),
                   ],
                 ),

@@ -1,6 +1,7 @@
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
+import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
 import 'package:anymex/screens/profile/user_profile_page.dart';
 import 'package:anymex/utils/al_about_me.dart';
 import 'package:anymex/utils/function.dart';
@@ -366,9 +367,9 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: RefreshIndicator(
               onRefresh: () => _loadInitial(refreshThread: true),
               child: CustomScrollView(
@@ -414,7 +415,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                     )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 160),
                       sliver: SliverList.builder(
                         itemCount: _comments.length + (_hasNextPage ? 1 : 0),
                         itemBuilder: (context, index) {
@@ -446,14 +447,58 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                         },
                       ),
                     ),
+                  if (_comments.isEmpty)
+                    const SliverToBoxAdapter(child: SizedBox(height: 150)),
                 ],
               ),
             ),
           ),
-          _buildComposerBar(context),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colors.surface.withValues(alpha: 0.0),
+                    colors.surface.withValues(alpha: 0.85),
+                    colors.surface,
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
+                ),
+              ),
+              padding: const EdgeInsets.only(top: 16),
+              child: AnilistThreadComposer(
+                controller: _replyController,
+                focusNode: _replyFocusNode,
+                replyingTo: _replyingTo,
+                onCancelReply: () => setState(() => _replyingTo = null),
+                onSend: _submitReply,
+                isSending: _isSendingReply,
+                isLocked: _thread.isLocked,
+                hasAuthToken: AnilistThreadsService.hasAnilistToken,
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  void _focusThreadCommentComposer() {
+    if (_thread.isLocked) {
+      snackBar('This thread is locked');
+      return;
+    }
+    if (!AnilistThreadsService.hasAnilistToken) {
+      snackBar('Log in to AniList to post comments');
+      return;
+    }
+    setState(() => _replyingTo = null);
+    _replyFocusNode.requestFocus();
   }
 
   Widget _buildThreadPost(BuildContext context) {
@@ -471,9 +516,18 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Row 1: Thread Title (top)
+          AnymeXText(
+            _thread.title,
+            size: 18,
+            variant: TextVariant.bold,
+            maxLines: 5,
+          ),
+          // Row 2: Thread Categories (below title)
           if (_thread.isSticky ||
               _thread.isLocked ||
               _thread.categories.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -495,66 +549,57 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   if (cat.name.isNotEmpty) _badge(context, cat.name),
               ],
             ),
-            const SizedBox(height: 10),
           ],
-          AnymeXText(
-            _thread.title,
-            size: 18,
-            variant: TextVariant.bold,
-            maxLines: 5,
-          ),
+          // Row 3: Thread Author on left | Love + Comment buttons on right
           const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => _openUserProfile(_thread.user),
-            child: Row(
-              children: [
-                _avatar(context, _thread.user?.avatarUrl, size: 32),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _openUserProfile(_thread.user),
+                  child: Row(
                     children: [
-                      AnymeXText(
-                        _thread.user?.name ?? 'Unknown',
-                        size: 13.5,
-                        variant: TextVariant.semiBold,
-                        color: colors.primary,
-                      ),
-                      if (_thread.createdAt > 0)
-                        AnymeXText(
-                          _relativeTime(_thread.createdAt),
-                          size: 11,
-                          color: colors.onSurfaceVariant,
+                      _avatar(context, _thread.user?.avatarUrl, size: 32),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnymeXText(
+                              _thread.user?.name ?? 'Unknown',
+                              size: 13.5,
+                              variant: TextVariant.semiBold,
+                              color: colors.primary,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_thread.createdAt > 0)
+                              AnymeXText(
+                                '${_relativeTime(_thread.createdAt)} · ${_thread.viewCount} views',
+                                size: 11,
+                                color: colors.onSurfaceVariant,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (_thread.bodyHtml.trim().isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Divider(
-              height: 1,
-              color: colors.outlineVariant.opaque(0.25, iReallyMeanIt: true),
-            ),
-            const SizedBox(height: 12),
-            AnilistAboutMe(about: _thread.bodyHtml),
-          ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
+              ),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: _toggleThreadLike,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(18),
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: _thread.isLiked
                         ? colors.primary.withValues(alpha: 0.16)
                         : colors.onSurface.opaque(0.06, iReallyMeanIt: true),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -568,7 +613,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                             ? colors.primary
                             : colors.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 5),
                       AnymeXText(
                         '${_thread.likeCount}',
                         size: 12,
@@ -581,26 +626,48 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Icon(Icons.chat_bubble_outline_rounded,
-                  size: 15, color: colors.onSurfaceVariant),
-              const SizedBox(width: 4),
-              AnymeXText(
-                '${_thread.replyCount}',
-                size: 12,
-                color: colors.onSurfaceVariant,
-              ),
-              const SizedBox(width: 12),
-              Icon(Icons.visibility_outlined,
-                  size: 15, color: colors.onSurfaceVariant),
-              const SizedBox(width: 4),
-              AnymeXText(
-                '${_thread.viewCount}',
-                size: 12,
-                color: colors.onSurfaceVariant,
+              const SizedBox(width: 6),
+              InkWell(
+                onTap: _focusThreadCommentComposer,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.opaque(0.06, iReallyMeanIt: true),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 15,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 5),
+                      AnymeXText(
+                        '${_thread.replyCount}',
+                        size: 12,
+                        variant: TextVariant.semiBold,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
+          // Body
+          if (_thread.bodyHtml.trim().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Divider(
+              height: 1,
+              color: colors.outlineVariant.opaque(0.25, iReallyMeanIt: true),
+            ),
+            const SizedBox(height: 12),
+            AnilistAboutMe(about: _thread.bodyHtml),
+          ],
         ],
       ),
     );
@@ -651,354 +718,336 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     );
   }
 
+  int _countDescendants(AnilistThreadComment comment) {
+    int total = 0;
+    for (final child in comment.childComments) {
+      total += 1 + _countDescendants(child);
+    }
+    return total;
+  }
+
   Widget _buildCommentNode(
     BuildContext context,
     AnilistThreadComment comment, {
     required int depth,
+    String? parentAuthorName,
   }) {
     final colors = context.colors;
-    final clampedDepth = depth.clamp(0, 4);
+    final isTopLevel = depth == 0;
     final isOwn = _currentUserId != null && comment.userId == _currentUserId;
+    final isOp = _thread.userId > 0 && comment.userId == _thread.userId;
+    final isReplyTarget = _replyingTo?.id == comment.id;
     final hasChildren = comment.childComments.isNotEmpty;
     final isCollapsed = _collapsedCommentIds.contains(comment.id);
+    final totalReplies = hasChildren ? _countDescendants(comment) : 0;
 
-    return Container(
-      margin: EdgeInsets.only(
-        left: clampedDepth > 0 ? 12.0 : 0.0,
-        top: depth == 0 ? 8.0 : 6.0,
+    final railColor = switch (depth % 3) {
+      1 => colors.primary.withValues(alpha: 0.45),
+      2 => colors.secondary.withValues(alpha: 0.45),
+      _ => colors.tertiary.withValues(alpha: 0.45),
+    };
+
+    final cardColor = isReplyTarget
+        ? colors.primary.withValues(alpha: 0.12)
+        : (isTopLevel
+            ? colors.surfaceContainerHighest.opaque(0.30, iReallyMeanIt: true)
+            : colors.surfaceContainer.opaque(0.55, iReallyMeanIt: true));
+
+    final cardBorderColor = isReplyTarget
+        ? colors.primary.withValues(alpha: 0.65)
+        : (isTopLevel
+            ? colors.outlineVariant.opaque(0.28, iReallyMeanIt: true)
+            : colors.outlineVariant.opaque(0.16, iReallyMeanIt: true));
+
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.all(isTopLevel ? 14 : 10),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(isTopLevel ? 16 : 12),
+        border: Border.all(
+          color: cardBorderColor,
+          width: isReplyTarget ? 1.4 : 1.0,
+        ),
       ),
-      decoration: clampedDepth > 0
-          ? BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: colors.primary.withValues(alpha: 0.28),
-                  width: 2,
-                ),
-              ),
-            )
-          : null,
-      padding: EdgeInsets.only(left: clampedDepth > 0 ? 10.0 : 0.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest
-                  .opaque(depth == 0 ? 0.22 : 0.14, iReallyMeanIt: true),
+          if (!isTopLevel &&
+              parentAuthorName != null &&
+              parentAuthorName.isNotEmpty) ...[
+            Row(
+              children: [
+                Icon(
+                  Icons.subdirectory_arrow_right_rounded,
+                  size: 13,
+                  color: colors.primary.withValues(alpha: 0.85),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: AnymeXText(
+                    'Replying to @$parentAuthorName',
+                    size: 11,
+                    variant: TextVariant.semiBold,
+                    color: colors.onSurfaceVariant,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
+          // Row 1: Author + time on left | Love + Reply icon (no text) on right
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _openUserProfile(comment.user),
+                  child: Row(
+                    children: [
+                      _avatar(
+                        context,
+                        comment.user?.avatarUrl,
+                        size: isTopLevel ? 28 : 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: AnymeXText(
+                                    comment.user?.name ?? 'Unknown',
+                                    size: isTopLevel ? 13.5 : 12.5,
+                                    variant: TextVariant.bold,
+                                    color: colors.primary,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isOp) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          colors.primary.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: AnymeXText(
+                                      'OP',
+                                      size: 9,
+                                      variant: TextVariant.bold,
+                                      color: colors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (comment.createdAt > 0)
+                              AnymeXText(
+                                _relativeTime(comment.createdAt),
+                                size: 10.5,
+                                color: colors.onSurfaceVariant,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Love button on right
+              InkWell(
+                onTap: () => _toggleCommentLike(comment),
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: comment.isLiked
+                        ? colors.primary.withValues(alpha: 0.16)
+                        : colors.onSurface.opaque(0.05, iReallyMeanIt: true),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        comment.isLiked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        size: 14,
+                        color: comment.isLiked
+                            ? colors.primary
+                            : colors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      AnymeXText(
+                        '${comment.likeCount}',
+                        size: 11,
+                        variant: TextVariant.semiBold,
+                        color: comment.isLiked
+                            ? colors.primary
+                            : colors.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Icon-only Reply button on right (no "Reply" text)
+              if (!_thread.isLocked && !comment.isLocked) ...[
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: 'Reply',
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        if (_replyingTo?.id == comment.id) {
+                          _replyingTo = null;
+                        } else {
+                          _replyingTo = comment;
+                          _replyFocusNode.requestFocus();
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: isReplyTarget
+                            ? colors.primary.withValues(alpha: 0.18)
+                            : colors.onSurface.opaque(0.05, iReallyMeanIt: true),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.reply_rounded,
+                        size: 15,
+                        color: isReplyTarget
+                            ? colors.primary
+                            : colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (isOwn) ...[
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () => _deleteComment(comment),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 15,
+                      color: colors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: isTopLevel ? 10 : 7),
+          AnilistAboutMe(about: comment.commentHtml),
+          // Bottom row (former love button spot): indicator + count ONLY (no "reply/replies/hide" text)
+          if (hasChildren) ...[
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  if (isCollapsed) {
+                    _collapsedCommentIds.remove(comment.id);
+                  } else {
+                    _collapsedCommentIds.add(comment.id);
+                  }
+                });
+              },
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: colors.outlineVariant.opaque(0.18, iReallyMeanIt: true),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: colors.onSurface.opaque(0.06, iReallyMeanIt: true),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isCollapsed
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_up_rounded,
+                      size: 16,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(width: 2),
+                    AnymeXText(
+                      '$totalReplies',
+                      size: 11.5,
+                      variant: TextVariant.bold,
+                      color: colors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final childrenWidget = (hasChildren && !isCollapsed)
+        ? Container(
+            margin: EdgeInsets.only(
+              left: isTopLevel ? 14.0 : (depth < 4 ? 10.0 : 0.0),
+              top: 6.0,
+            ),
+            padding: const EdgeInsets.only(left: 12.0),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: railColor,
+                  width: 2.2,
+                ),
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _openUserProfile(comment.user),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _avatar(context, comment.user?.avatarUrl, size: 26),
-                          const SizedBox(width: 8),
-                          AnymeXText(
-                            comment.user?.name ?? 'Unknown',
-                            size: 13,
-                            variant: TextVariant.semiBold,
-                            color: colors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (comment.createdAt > 0)
-                      Expanded(
-                        child: AnymeXText(
-                          _relativeTime(comment.createdAt),
-                          size: 11,
-                          color: colors.onSurfaceVariant,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )
-                    else
-                      const Spacer(),
-                    if (hasChildren)
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            if (isCollapsed) {
-                              _collapsedCommentIds.remove(comment.id);
-                            } else {
-                              _collapsedCommentIds.add(comment.id);
-                            }
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isCollapsed
-                                    ? Icons.unfold_more_rounded
-                                    : Icons.unfold_less_rounded,
-                                size: 15,
-                                color: colors.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 2),
-                              AnymeXText(
-                                '${comment.childComments.length}',
-                                size: 11,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                AnilistAboutMe(about: comment.commentHtml),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () => _toggleCommentLike(comment),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              comment.isLiked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              size: 15,
-                              color: comment.isLiked
-                                  ? colors.primary
-                                  : colors.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            AnymeXText(
-                              '${comment.likeCount}',
-                              size: 11.5,
-                              color: comment.isLiked
-                                  ? colors.primary
-                                  : colors.onSurfaceVariant,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (!_thread.isLocked && !comment.isLocked) ...[
-                      const SizedBox(width: 8),
-                      InkWell(
-                        onTap: () {
-                          setState(() => _replyingTo = comment);
-                          _replyFocusNode.requestFocus();
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.reply_rounded,
-                                size: 15,
-                                color: colors.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 4),
-                              AnymeXText(
-                                'Reply',
-                                size: 11.5,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (isOwn) ...[
-                      const Spacer(),
-                      InkWell(
-                        onTap: () => _deleteComment(comment),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 4),
-                          child: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 16,
-                            color: colors.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (hasChildren && !isCollapsed)
-            for (final child in comment.childComments)
-              _buildCommentNode(context, child, depth: depth + 1),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComposerBar(BuildContext context) {
-    final colors = context.colors;
-    final hasToken = AnilistThreadsService.hasAnilistToken;
-
-    if (_thread.isLocked) {
-      return SafeArea(
-        top: false,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainer,
-            border: Border(
-              top: BorderSide(
-                color: colors.outlineVariant.opaque(0.25, iReallyMeanIt: true),
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.lock_outline_rounded,
-                  size: 16, color: colors.onSurfaceVariant),
-              const SizedBox(width: 8),
-              AnymeXText(
-                'This thread is locked',
-                size: 12.5,
-                color: colors.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (!hasToken) {
-      return SafeArea(
-        top: false,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainer,
-            border: Border(
-              top: BorderSide(
-                color: colors.outlineVariant.opaque(0.25, iReallyMeanIt: true),
-              ),
-            ),
-          ),
-          child: AnymeXText(
-            'Log in to AniList to post replies or like comments',
-            size: 12.5,
-            color: colors.onSurfaceVariant,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainer,
-          border: Border(
-            top: BorderSide(
-              color: colors.outlineVariant.opaque(0.25, iReallyMeanIt: true),
-            ),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_replyingTo != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6, left: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.reply_rounded, size: 14, color: colors.primary),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: AnymeXText(
-                        'Replying to ${_replyingTo!.user?.name ?? 'comment'}',
-                        size: 12,
-                        color: colors.primary,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => setState(() => _replyingTo = null),
-                      child: Icon(Icons.close_rounded,
-                          size: 16, color: colors.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _replyController,
-                    focusNode: _replyFocusNode,
-                    minLines: 1,
-                    maxLines: 4,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      hintText: _replyingTo != null
-                          ? 'Write a reply (Markdown supported)...'
-                          : 'Write a comment (Markdown supported)...',
-                      isDense: true,
-                      filled: true,
-                      fillColor: colors.surfaceContainerHighest
-                          .opaque(0.4, iReallyMeanIt: true),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
+                for (int i = 0; i < comment.childComments.length; i++)
+                  Padding(
+                    padding: EdgeInsets.only(top: i == 0 ? 0.0 : 6.0),
+                    child: _buildCommentNode(
+                      context,
+                      comment.childComments[i],
+                      depth: depth + 1,
+                      parentAuthorName: comment.user?.name,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _isSendingReply ? null : _submitReply,
-                  icon: _isSendingReply
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded, size: 18),
-                ),
               ],
             ),
-          ],
-        ),
+          )
+        : const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(top: isTopLevel ? 10.0 : 0.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          card,
+          childrenWidget,
+        ],
       ),
     );
   }
