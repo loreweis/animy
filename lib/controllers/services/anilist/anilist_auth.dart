@@ -222,12 +222,12 @@ class AnilistAuth extends GetxController {
     if (selectedMethod.startsWith('browser')) {
       final forceWebAuth = selectedMethod == 'browser_external';
       final url =
-          'https://anilist.co/api/v2/oauth/authorize?client_id=$clientId&redirect_uri=anymex://callback&response_type=code';
+          'https://anilist.co/api/v2/oauth/authorize?client_id=$clientId&redirect_uri=mysync://callback&response_type=code';
       try {
         final result = await OauthHelper.authenticate(
           context: context,
           url: url,
-          callbackUrlScheme: 'anymex',
+          callbackUrlScheme: 'mysync',
           forceWebAuth: forceWebAuth,
         );
         if (result != null) {
@@ -375,7 +375,7 @@ class AnilistAuth extends GetxController {
         'grant_type': 'authorization_code',
         'client_id': clientId,
         'client_secret': clientSecret,
-        'redirect_uri': "anymex://callback",
+        'redirect_uri': "mysync://callback",
         'code': code,
       },
     );

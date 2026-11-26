@@ -645,7 +645,7 @@ class MalService extends GetxController implements BaseService, OnlineService {
       body: {
         'grant_type': 'refresh_token',
         'client_id': clientId,
-        'client_secret': clientSecret,
+        if (clientSecret.isNotEmpty) 'client_secret': clientSecret,
         'refresh_token': refreshToken,
       },
     );
@@ -710,7 +710,7 @@ class MalService extends GetxController implements BaseService, OnlineService {
       final result = await OauthHelper.authenticate(
         context: context,
         url: url,
-        callbackUrlScheme: 'anymex',
+        callbackUrlScheme: 'mysync',
         forceWebAuth: forceWebAuth,
       );
 
@@ -829,7 +829,7 @@ class MalService extends GetxController implements BaseService, OnlineService {
       body: {
         'client_id': clientId,
         'code': code,
-        'client_secret': secret,
+        if (secret.isNotEmpty) 'client_secret': secret,
         'code_verifier': codeVerifier,
         'grant_type': 'authorization_code',
       },

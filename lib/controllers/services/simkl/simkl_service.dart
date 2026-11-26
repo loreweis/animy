@@ -940,12 +940,12 @@ class SimklService extends GetxController
     final clientId = dotenv.env['SIMKL_CLIENT_ID'];
 
     final url =
-        'https://simkl.com/oauth/authorize?response_type=code&client_id=$clientId&redirect_uri=anymex://callback';
+        'https://simkl.com/oauth/authorize?response_type=code&client_id=$clientId&redirect_uri=mysync://callback';
     try {
       final result = await OauthHelper.authenticate(
         context: context,
         url: url,
-        callbackUrlScheme: 'anymex',
+        callbackUrlScheme: 'mysync',
         forceWebAuth: forceWebAuth,
       );
 
@@ -964,12 +964,12 @@ class SimklService extends GetxController
     final clientId = dotenv.env['SIMKL_CLIENT_ID'];
 
     final url =
-        'https://simkl.com/oauth/authorize?response_type=code&client_id=$clientId&redirect_uri=anymex://callback';
+        'https://simkl.com/oauth/authorize?response_type=code&client_id=$clientId&redirect_uri=mysync://callback';
     try {
       final result = await OauthHelper.authenticate(
         context: context,
         url: url,
-        callbackUrlScheme: 'anymex',
+        callbackUrlScheme: 'mysync',
         forceWebAuth: false,
       );
 
@@ -998,7 +998,7 @@ class SimklService extends GetxController
         "code": code,
         "client_id": clientId,
         "client_secret": clientSecret,
-        "redirect_uri": "anymex://callback",
+        "redirect_uri": "mysync://callback",
         "grant_type": "authorization_code"
       }),
     );
