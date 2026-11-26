@@ -495,7 +495,7 @@ class AnilistThreadsService {
     required String title,
     required String body,
     required int mediaId,
-    required bool isManga,
+    required List<int> categories,
   }) async {
     const mutation = r'''
       mutation ($title: String, $body: String, $categories: [Int], $mediaCategories: [Int]) {
@@ -549,7 +549,7 @@ class AnilistThreadsService {
       variables: {
         'title': title.trim(),
         'body': body.trim(),
-        'categories': [isManga ? 2 : 1],
+        'categories': categories,
         'mediaCategories': [mediaId],
       },
       requireAuth: true,

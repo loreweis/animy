@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/models/Media/media.dart';
+import 'package:anymex/controllers/theme.dart';
+import 'package:anymex/screens/anime/widgets/threads/anilist_create_thread_page.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_detail_page.dart';
+import 'package:get/get.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_container.dart';
@@ -154,6 +157,13 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     );
   }
 
+  bool _isOledDark(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!isDark) return false;
+    return Get.isRegistered<ThemeController>() &&
+        Get.find<ThemeController>().isOled;
+  }
+
   Future<void> _showCreateThreadSheet() async {
     if (!AnilistThreadsService.hasAnilistToken) {
       snackBar('Log in to AniList to create a thread');
@@ -164,139 +174,11 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
       return;
     }
 
-    final titleCtrl = TextEditingController();
-    final bodyCtrl = TextEditingController();
-    bool submitting = false;
-
-    final created = await showModalBottomSheet<AnilistThread>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            final colors = ctx.colors;
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                14,
-                16,
-                MediaQuery.viewInsetsOf(ctx).bottom + 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colors.onSurfaceVariant
-                            .opaque(0.3, iReallyMeanIt: true),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const AnymeXText(
-                    'New AniList Thread',
-                    size: 17,
-                    variant: TextVariant.bold,
-                  ),
-                  const SizedBox(height: 4),
-                  AnymeXText(
-                    'Linked to ${widget.media.displayTitle}',
-                    size: 12,
-                    color: colors.onSurfaceVariant,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Thread title',
-                      filled: true,
-                      fillColor: colors.surfaceContainerHighest
-                          .opaque(0.35, iReallyMeanIt: true),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: bodyCtrl,
-                    minLines: 4,
-                    maxLines: 7,
-                    decoration: InputDecoration(
-                      labelText: 'Body (Markdown supported)',
-                      alignLabelWithHint: true,
-                      filled: true,
-                      fillColor: colors.surfaceContainerHighest
-                          .opaque(0.35, iReallyMeanIt: true),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: submitting
-                          ? null
-                          : () async {
-                              final t = titleCtrl.text.trim();
-                              final b = bodyCtrl.text.trim();
-                              if (t.isEmpty || b.isEmpty) {
-                                snackBar('Title and body cannot be empty');
-                                return;
-                              }
-                              setSheetState(() => submitting = true);
-                              final res =
-                                  await AnilistThreadsService.saveThread(
-                                title: t,
-                                body: b,
-                                mediaId: _anilistMediaId!,
-                                isManga:
-                                    widget.media.mediaType != ItemType.anime,
-                              );
-                              if (!ctx.mounted) return;
-                              if (res != null) {
-                                Navigator.of(ctx).pop(res);
-                              } else {
-                                setSheetState(() => submitting = false);
-                                errorSnackBar('Failed to create thread');
-                              }
-                            },
-                      icon: submitting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send_rounded, size: 18),
-                      label: Text(submitting ? 'Posting...' : 'Post Thread'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    final created = await AnilistCreateThreadPage.open(
+      context,
+      media: widget.media,
+      anilistMediaId: _anilistMediaId!,
     );
-
-    titleCtrl.dispose();
-    bodyCtrl.dispose();
 
     if (created != null && mounted) {
       successSnackBar('Thread created on AniList');
@@ -337,8 +219,9 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest
-                  .opaque(0.25, iReallyMeanIt: true),
+              color: _isOledDark(context)
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : colors.surfaceContainer.opaque(0.35, iReallyMeanIt: true),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: colors.onSurface.opaque(0.08, iReallyMeanIt: true),
@@ -586,7 +469,9 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.opaque(0.24, iReallyMeanIt: true),
+        color: _isOledDark(context)
+            ? Colors.white.withValues(alpha: 0.03)
+            : colors.surfaceContainer.opaque(0.35, iReallyMeanIt: true),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: thread.isSticky

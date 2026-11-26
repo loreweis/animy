@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AnilistThreadCategory {
   final int id;
   final String name;
@@ -210,7 +212,12 @@ class AnilistThreadComment {
   }) {
     final resolvedThreadId =
         (json['threadId'] as num?)?.toInt() ?? fallbackThreadId;
-    final rawChildren = json['childComments'];
+    dynamic rawChildren = json['childComments'];
+    if (rawChildren is String && rawChildren.trim().isNotEmpty) {
+      try {
+        rawChildren = jsonDecode(rawChildren);
+      } catch (_) {}
+    }
     final children = <AnilistThreadComment>[];
     if (rawChildren is List) {
       for (final item in rawChildren) {
