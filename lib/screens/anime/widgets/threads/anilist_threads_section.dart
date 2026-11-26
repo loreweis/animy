@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/models/Media/media.dart';
+import 'package:anymex/controllers/settings/settings.dart';
 import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_create_thread_page.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_detail_page.dart';
@@ -143,9 +144,11 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
   }
 
   void _openThread(AnilistThread thread) {
+    final detailsTheme = Theme.of(context);
     navigate(
       () => AnilistThreadDetailPage(
         initialThread: thread,
+        inheritedTheme: detailsTheme,
         onThreadUpdated: (updated) {
           if (!mounted) return;
           final idx = _threads.indexWhere((t) => t.id == updated.id);
@@ -160,6 +163,7 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
   bool _isOledDark(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return false;
+    if (settingsController.detailsOledMode) return true;
     return Get.isRegistered<ThemeController>() &&
         Get.find<ThemeController>().isOled;
   }
@@ -178,6 +182,7 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
       context,
       media: widget.media,
       anilistMediaId: _anilistMediaId!,
+      inheritedTheme: Theme.of(context),
     );
 
     if (created != null && mounted) {

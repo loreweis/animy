@@ -1,4 +1,5 @@
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
+import 'package:anymex/controllers/settings/settings.dart';
 import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/models/Media/media.dart';
@@ -21,23 +22,27 @@ class _ThreadCategoryDef {
 class AnilistCreateThreadPage extends StatefulWidget {
   final Media media;
   final int anilistMediaId;
+  final ThemeData? inheritedTheme;
 
   const AnilistCreateThreadPage({
     super.key,
     required this.media,
     required this.anilistMediaId,
+    this.inheritedTheme,
   });
 
   static Future<AnilistThread?> open(
     BuildContext context, {
     required Media media,
     required int anilistMediaId,
+    ThemeData? inheritedTheme,
   }) {
     return Navigator.of(context).push<AnilistThread>(
       MaterialPageRoute(
         builder: (_) => AnilistCreateThreadPage(
           media: media,
           anilistMediaId: anilistMediaId,
+          inheritedTheme: inheritedTheme ?? Theme.of(context),
         ),
       ),
     );
@@ -92,6 +97,7 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
   bool _isOledDark(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return false;
+    if (settingsController.detailsOledMode) return true;
     return Get.isRegistered<ThemeController>() &&
         Get.find<ThemeController>().isOled;
   }
@@ -207,6 +213,14 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveTheme = widget.inheritedTheme ?? Theme.of(context);
+    return Theme(
+      data: effectiveTheme,
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     final colors = context.colors;
     final isOled = _isOledDark(context);
     final fieldBg = isOled
@@ -215,6 +229,8 @@ class _AnilistCreateThreadPageState extends State<AnilistCreateThreadPage> {
     final borderCol = colors.onSurface.opaque(0.10, iReallyMeanIt: true);
 
     return AnymeXScaffold(
+      isOled: isOled,
+      disabled: isOled,
       body: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(

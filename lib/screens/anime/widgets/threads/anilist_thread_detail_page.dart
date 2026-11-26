@@ -1,7 +1,7 @@
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
-import 'package:anymex/controllers/theme.dart';
-import 'package:anymex/widgets/common/anymex_scaffold.dart';
 import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
+import 'package:anymex/controllers/settings/settings.dart';
+import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/models/Anilist/anilist_thread.dart';
 import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
 import 'package:anymex/screens/profile/user_profile_page.dart';
@@ -10,6 +10,7 @@ import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
+import 'package:anymex/widgets/common/anymex_scaffold.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,11 +19,13 @@ import 'package:url_launcher/url_launcher.dart';
 class AnilistThreadDetailPage extends StatefulWidget {
   final AnilistThread initialThread;
   final ValueChanged<AnilistThread>? onThreadUpdated;
+  final ThemeData? inheritedTheme;
 
   const AnilistThreadDetailPage({
     super.key,
     required this.initialThread,
     this.onThreadUpdated,
+    this.inheritedTheme,
   });
 
   @override
@@ -36,13 +39,18 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasNextPage = false;
-  int _page = 1;
+  int _currentPage = 1;
   String _commentSort = 'ID'; // 'ID' = Oldest, 'ID_DESC' = Newest
 
   final TextEditingController _replyController = TextEditingController();
+  final FocusNode _composerFocusNode = FocusNode();
   final ValueNotifier<AnilistThreadComment?> _replyingToNotifier =
       ValueNotifier<AnilistThreadComment?>(null);
-  final Set<int> _collapsedCommentIds = {};
+
+  /// Comments whose nested replies are currently expanded.
+  /// Collapsed by default so expand indicator (⌄ N) is immediately clear
+  /// and fewer HtmlWidgets are mounted upfront.
+  final Set<int> _expandedCommentIds = {};
 
   int? get _currentUserId {
     if (!Get.isRegistered<AnilistAuth>()) return null;
@@ -61,43 +69,69 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   @override
   void dispose() {
     _replyController.dispose();
+    _composerFocusNode.dispose();
     _replyingToNotifier.dispose();
     super.dispose();
   }
 
+  bool get _isNewestSort => _commentSort == 'ID_DESC';
+
   Future<void> _loadInitial({bool refreshThread = true}) async {
     setState(() {
       _isLoading = true;
-      _page = 1;
+      _currentPage = 1;
     });
 
-    final futures = await Future.wait([
-      if (refreshThread) AnilistThreadsService.fetchThreadDetail(_thread.id),
-      AnilistThreadsService.fetchThreadComments(
-        threadId: _thread.id,
-        page: 1,
-        sort: _commentSort,
-      ),
-    ]);
-
-    if (!mounted) return;
-
-    int commentResultIdx = 0;
+    AnilistThread? fetchedThread;
     if (refreshThread) {
-      final fetchedThread = futures[0] as AnilistThread?;
+      fetchedThread = await AnilistThreadsService.fetchThreadDetail(_thread.id);
+      if (!mounted) return;
       if (fetchedThread != null) {
         _thread = fetchedThread;
         widget.onThreadUpdated?.call(_thread);
       }
-      commentResultIdx = 1;
     }
 
-    final (comments, hasNext) =
-        futures[commentResultIdx] as (List<AnilistThreadComment>, bool);
+    // Fetch page 1 first (no `sort` param so AniList preserves `childComments`)
+    final (page1Comments, page1HasNext, lastPage) =
+        await AnilistThreadsService.fetchThreadComments(
+      threadId: _thread.id,
+      page: 1,
+    );
+    if (!mounted) return;
+
+    if (!_isNewestSort) {
+      setState(() {
+        _currentPage = 1;
+        _comments = page1Comments;
+        _hasNextPage = page1HasNext;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Newest first: jump to lastPage and reverse order while keeping childComments intact
+    if (lastPage <= 1) {
+      setState(() {
+        _currentPage = 1;
+        _comments = page1Comments.reversed.toList();
+        _hasNextPage = false;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final (lastComments, _, _) =
+        await AnilistThreadsService.fetchThreadComments(
+      threadId: _thread.id,
+      page: lastPage,
+    );
+    if (!mounted) return;
 
     setState(() {
-      _comments = comments;
-      _hasNextPage = hasNext;
+      _currentPage = lastPage;
+      _comments = lastComments.reversed.toList();
+      _hasNextPage = lastPage > 1;
       _isLoading = false;
     });
   }
@@ -105,19 +139,42 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   Future<void> _loadMoreComments() async {
     if (_isLoadingMore || !_hasNextPage) return;
     setState(() => _isLoadingMore = true);
-    final nextPage = _page + 1;
-    final (more, hasNext) = await AnilistThreadsService.fetchThreadComments(
-      threadId: _thread.id,
-      page: nextPage,
-      sort: _commentSort,
-    );
-    if (!mounted) return;
-    setState(() {
-      _page = nextPage;
-      _comments = [..._comments, ...more];
-      _hasNextPage = hasNext;
-      _isLoadingMore = false;
-    });
+
+    if (!_isNewestSort) {
+      final nextPage = _currentPage + 1;
+      final (more, hasNext, _) =
+          await AnilistThreadsService.fetchThreadComments(
+        threadId: _thread.id,
+        page: nextPage,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentPage = nextPage;
+        _comments = [..._comments, ...more];
+        _hasNextPage = hasNext;
+        _isLoadingMore = false;
+      });
+    } else {
+      final prevPage = _currentPage - 1;
+      if (prevPage < 1) {
+        setState(() {
+          _hasNextPage = false;
+          _isLoadingMore = false;
+        });
+        return;
+      }
+      final (more, _, _) = await AnilistThreadsService.fetchThreadComments(
+        threadId: _thread.id,
+        page: prevPage,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentPage = prevPage;
+        _comments = [..._comments, ...more.reversed];
+        _hasNextPage = prevPage > 1;
+        _isLoadingMore = false;
+      });
+    }
   }
 
   Future<void> _toggleThreadLike() async {
@@ -297,6 +354,9 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     if (!mounted) return saved != null;
 
     if (saved != null) {
+      if (parentCommentId != null) {
+        _expandedCommentIds.add(parentCommentId);
+      }
       setState(() {
         _thread = _thread.copyWith(replyCount: _thread.replyCount + 1);
       });
@@ -310,7 +370,10 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     }
   }
 
-  void _openComposerSheet({AnilistThreadComment? replyTo, bool resetTarget = false}) {
+  void _focusComposer({
+    AnilistThreadComment? replyTo,
+    bool resetTarget = false,
+  }) {
     if (_thread.isLocked) {
       snackBar('This thread is locked');
       return;
@@ -322,14 +385,13 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     if (resetTarget) {
       _replyingToNotifier.value = null;
     } else if (replyTo != null) {
-      _replyingToNotifier.value = replyTo;
+      if (_replyingToNotifier.value?.id == replyTo.id) {
+        _replyingToNotifier.value = null;
+      } else {
+        _replyingToNotifier.value = replyTo;
+      }
     }
-    AnilistThreadComposerSheet.show(
-      context,
-      controller: _replyController,
-      replyingToNotifier: _replyingToNotifier,
-      onSubmit: _submitReply,
-    );
+    _composerFocusNode.requestFocus();
   }
 
   Future<void> _openInBrowser() async {
@@ -355,202 +417,227 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   bool _isOledDark(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!isDark) return false;
+    if (settingsController.detailsOledMode) return true;
     return Get.isRegistered<ThemeController>() &&
         Get.find<ThemeController>().isOled;
   }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveTheme = widget.inheritedTheme ?? Theme.of(context);
+    return Theme(
+      data: effectiveTheme,
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     final colors = context.colors;
     final isOled = _isOledDark(context);
 
     return AnymeXScaffold(
+      isOled: isOled,
+      disabled: isOled,
       body: Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: isOled ? Colors.black : Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 0,
-        title: const AnymeXText(
-          'AniList Thread',
-          size: 16,
-          variant: TextVariant.bold,
-        ),
-        actions: [
-          IconButton(
-            tooltip: _thread.isSubscribed ? 'Unsubscribe' : 'Subscribe',
-            icon: Icon(
-              _thread.isSubscribed
-                  ? Icons.notifications_active_rounded
-                  : Icons.notifications_none_rounded,
-              color: _thread.isSubscribed ? colors.primary : null,
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: isOled ? Colors.black : Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          titleSpacing: 0,
+          title: const AnymeXText(
+            'AniList Thread',
+            size: 16,
+            variant: TextVariant.bold,
+          ),
+          actions: [
+            IconButton(
+              tooltip: _thread.isSubscribed ? 'Unsubscribe' : 'Subscribe',
+              icon: Icon(
+                _thread.isSubscribed
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_none_rounded,
+                color: _thread.isSubscribed ? colors.primary : null,
+              ),
+              onPressed: _toggleSubscription,
             ),
-            onPressed: _toggleSubscription,
-          ),
-          IconButton(
-            tooltip: 'Open on AniList',
-            icon: const Icon(Icons.open_in_new_rounded, size: 20),
-            onPressed: _openInBrowser,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: RepaintBoundary(
-              child: RefreshIndicator(
-              onRefresh: () => _loadInitial(refreshThread: true),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _buildThreadPost(context),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildCommentsHeader(context),
-                  ),
-                  if (_isLoading)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
-                        child: Center(child: CircularProgressIndicator()),
+            IconButton(
+              tooltip: 'Open on AniList',
+              icon: const Icon(Icons.open_in_new_rounded, size: 20),
+              onPressed: _openInBrowser,
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => FocusScope.of(context).unfocus(),
+                child: RepaintBoundary(
+                  child: RefreshIndicator(
+                    onRefresh: () => _loadInitial(refreshThread: true),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
-                    )
-                  else if (_comments.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 36),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              size: 36,
-                              color: colors.onSurfaceVariant
-                                  .opaque(0.5, iReallyMeanIt: true),
-                            ),
-                            const SizedBox(height: 10),
-                            AnymeXText(
-                              'No comments yet. Be the first to reply!',
-                              size: 13,
-                              color: colors.onSurfaceVariant,
-                            ),
-                          ],
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _buildThreadPost(context),
                         ),
-                      ),
-                    )
-                  else
-                    SliverToBoxAdapter(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(14, 6, 14, 110),
-                        decoration: BoxDecoration(
-                          color: isOled
-                              ? Colors.white.withValues(alpha: 0.03)
-                              : colors.surfaceContainer
-                                  .opaque(0.35, iReallyMeanIt: true),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: colors.onSurface
-                                .opaque(0.08, iReallyMeanIt: true),
-                            width: 1,
-                          ),
+                        SliverToBoxAdapter(
+                          child: _buildCommentsHeader(context),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                        if (_isLoading)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          )
+                        else if (_comments.isEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 36,
+                              ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  for (int i = 0; i < _comments.length; i++) ...[
-                                    if (i > 0)
-                                      Container(
-                                        height: 1,
-                                        margin: const EdgeInsets.only(
-                                          left: 36,
-                                          top: 14,
-                                          bottom: 14,
-                                        ),
-                                        color: colors.outlineVariant
-                                            .opaque(0.18, iReallyMeanIt: true),
-                                      ),
-                                    _buildCommentNode(
-                                      context,
-                                      _comments[i],
-                                      depth: 0,
-                                    ),
-                                  ],
+                                  Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    size: 36,
+                                    color: colors.onSurfaceVariant
+                                        .opaque(0.5, iReallyMeanIt: true),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  AnymeXText(
+                                    'No comments yet. Be the first to reply!',
+                                    size: 13,
+                                    color: colors.onSurfaceVariant,
+                                  ),
                                 ],
                               ),
                             ),
-                            if (_hasNextPage)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                child: Center(
-                                  child: _isLoadingMore
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2.2),
-                                        )
-                                      : OutlinedButton.icon(
-                                          onPressed: _loadMoreComments,
-                                          icon: const Icon(
-                                              Icons.expand_more_rounded),
-                                          label:
-                                              const Text('Load more comments'),
-                                        ),
+                          )
+                        else
+                          SliverToBoxAdapter(
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.fromLTRB(14, 6, 14, 120),
+                              decoration: BoxDecoration(
+                                color: isOled
+                                    ? Colors.white.withValues(alpha: 0.03)
+                                    : colors.surfaceContainer
+                                        .opaque(0.35, iReallyMeanIt: true),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: colors.onSurface
+                                      .opaque(0.08, iReallyMeanIt: true),
+                                  width: 1,
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      14,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        for (int i = 0;
+                                            i < _comments.length;
+                                            i++) ...[
+                                          if (i > 0)
+                                            Container(
+                                              height: 1,
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                vertical: 14,
+                                              ),
+                                              color: colors.outlineVariant
+                                                  .opaque(0.18,
+                                                      iReallyMeanIt: true),
+                                            ),
+                                          _buildCommentNode(
+                                            context,
+                                            _comments[i],
+                                            depth: 0,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  if (_hasNextPage)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        0,
+                                        16,
+                                        16,
+                                      ),
+                                      child: Center(
+                                        child: _isLoadingMore
+                                            ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2.2,
+                                                ),
+                                              )
+                                            : OutlinedButton.icon(
+                                                onPressed: _loadMoreComments,
+                                                icon: const Icon(
+                                                  Icons.expand_more_rounded,
+                                                ),
+                                                label: const Text(
+                                                  'Load more comments',
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (_comments.isEmpty)
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 120),
+                          ),
+                      ],
                     ),
-                  if (_comments.isEmpty)
-                    const SliverToBoxAdapter(child: SizedBox(height: 110)),
-                ],
+                  ),
+                ),
               ),
             ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: AnilistThreadComposer(
+                controller: _replyController,
+                focusNode: _composerFocusNode,
+                replyingToNotifier: _replyingToNotifier,
+                onSubmit: _submitReply,
+                isLocked: _thread.isLocked,
+                hasAuthToken: AnilistThreadsService.hasAnilistToken,
+              ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ValueListenableBuilder<AnilistThreadComment?>(
-              valueListenable: _replyingToNotifier,
-              builder: (context, replyingTo, _) {
-                return AnilistThreadComposerTrigger(
-                  controller: _replyController,
-                  replyingTo: replyingTo,
-                  onTap: () => _openComposerSheet(),
-                  onCancelReply: () => _replyingToNotifier.value = null,
-                  isLocked: _thread.isLocked,
-                  hasAuthToken: AnilistThreadsService.hasAnilistToken,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
-  }
-
-  void _focusThreadCommentComposer() {
-    _openComposerSheet(resetTarget: true);
   }
 
   Widget _buildThreadPost(BuildContext context) {
     final colors = context.colors;
     final isOled = _isOledDark(context);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 6, 14, 10),
       padding: const EdgeInsets.all(16),
@@ -566,14 +653,14 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Thread Title (top)
+          // Row 1: Thread Title
           AnymeXText(
             _thread.title,
             size: 18,
             variant: TextVariant.bold,
             maxLines: 5,
           ),
-          // Row 2: Thread Categories (below title)
+          // Row 2: Thread Categories
           if (_thread.isSticky ||
               _thread.isLocked ||
               _thread.categories.isNotEmpty) ...[
@@ -600,7 +687,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
               ],
             ),
           ],
-          // Row 3: Thread Author on left | Love + Comment buttons on right
+          // Row 3: [Avatar] nama_akun · date (no views!) | [Love] [Comment]
           const SizedBox(height: 12),
           Row(
             children: [
@@ -609,31 +696,28 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   onTap: () => _openUserProfile(_thread.user),
                   child: Row(
                     children: [
-                      _avatar(context, _thread.user?.avatarUrl, size: 32),
+                      _avatar(context, _thread.user?.avatarUrl, size: 30),
                       const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AnymeXText(
-                              _thread.user?.name ?? 'Unknown',
-                              size: 13.5,
-                              variant: TextVariant.semiBold,
-                              color: colors.primary,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_thread.createdAt > 0)
-                              AnymeXText(
-                                '${_relativeTime(_thread.createdAt)} · ${_thread.viewCount} views',
-                                size: 11,
-                                color: colors.onSurfaceVariant,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
+                      Flexible(
+                        child: AnymeXText(
+                          _thread.user?.name ?? 'Unknown',
+                          size: 13.5,
+                          variant: TextVariant.semiBold,
+                          color: colors.primary,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (_thread.createdAt > 0) ...[
+                        const SizedBox(width: 6),
+                        AnymeXText(
+                          '· ${_relativeTime(_thread.createdAt)}',
+                          size: 11.5,
+                          color: colors.onSurfaceVariant,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -678,7 +762,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
               ),
               const SizedBox(width: 6),
               InkWell(
-                onTap: _focusThreadCommentComposer,
+                onTap: () => _focusComposer(resetTarget: true),
                 borderRadius: BorderRadius.circular(18),
                 child: Container(
                   padding:
@@ -708,7 +792,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
               ),
             ],
           ),
-          // Body
           if (_thread.bodyHtml.trim().isNotEmpty) ...[
             const SizedBox(height: 14),
             Divider(
@@ -751,8 +834,11 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.sort_rounded,
-                      size: 16, color: colors.onSurfaceVariant),
+                  Icon(
+                    Icons.sort_rounded,
+                    size: 16,
+                    color: colors.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   AnymeXText(
                     _commentSort == 'ID' ? 'Oldest' : 'Newest',
@@ -780,14 +866,12 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     BuildContext context,
     AnilistThreadComment comment, {
     required int depth,
-    String? parentAuthorName,
   }) {
     final colors = context.colors;
     final isTopLevel = depth == 0;
     final isOwn = _currentUserId != null && comment.userId == _currentUserId;
-    final isOp = _thread.userId > 0 && comment.userId == _thread.userId;
     final hasChildren = comment.childComments.isNotEmpty;
-    final isCollapsed = _collapsedCommentIds.contains(comment.id);
+    final isExpanded = _expandedCommentIds.contains(comment.id);
     final totalReplies = hasChildren ? _countDescendants(comment) : 0;
 
     final railColor = switch (depth % 3) {
@@ -805,9 +889,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
         final isReplyTarget = activeReplyTarget?.id == comment.id;
 
         return Container(
-          padding: isReplyTarget
-              ? const EdgeInsets.all(8)
-              : EdgeInsets.zero,
+          padding: isReplyTarget ? const EdgeInsets.all(8) : EdgeInsets.zero,
           decoration: isReplyTarget
               ? BoxDecoration(
                   color: colors.primary.withValues(alpha: 0.08),
@@ -817,32 +899,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!isTopLevel &&
-                  parentAuthorName != null &&
-                  parentAuthorName.isNotEmpty) ...[
-                Row(
-                  children: [
-                    Icon(
-                      Icons.subdirectory_arrow_right_rounded,
-                      size: 13,
-                      color: colors.primary.withValues(alpha: 0.85),
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: AnymeXText(
-                        '@$parentAuthorName',
-                        size: 11,
-                        variant: TextVariant.semiBold,
-                        color: colors.onSurfaceVariant,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-              ],
-              // Row 1: Author + time on left | Love + Reply icon (no text) on right
+              // Row 1: [Avatar] nama_akun · date on left | [Love] [Reply icon] on right
               Row(
                 children: [
                   Expanded(
@@ -856,57 +913,26 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                             size: isTopLevel ? 28 : 22,
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: AnymeXText(
-                                        comment.user?.name ?? 'Unknown',
-                                        size: isTopLevel ? 13.5 : 12.5,
-                                        variant: TextVariant.bold,
-                                        color: colors.primary,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (isOp) ...[
-                                      const SizedBox(width: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                          vertical: 1,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: colors.primary
-                                              .withValues(alpha: 0.18),
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                        ),
-                                        child: AnymeXText(
-                                          'OP',
-                                          size: 9,
-                                          variant: TextVariant.bold,
-                                          color: colors.primary,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                if (comment.createdAt > 0)
-                                  AnymeXText(
-                                    _relativeTime(comment.createdAt),
-                                    size: 10.5,
-                                    color: colors.onSurfaceVariant,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
+                          Flexible(
+                            child: AnymeXText(
+                              comment.user?.name ?? 'Unknown',
+                              size: isTopLevel ? 13.5 : 12.5,
+                              variant: TextVariant.bold,
+                              color: colors.primary,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (comment.createdAt > 0) ...[
+                            const SizedBox(width: 6),
+                            AnymeXText(
+                              '· ${_relativeTime(comment.createdAt)}',
+                              size: 11,
+                              color: colors.onSurfaceVariant,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -950,7 +976,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                     Tooltip(
                       message: 'Reply',
                       child: InkWell(
-                        onTap: () => _openComposerSheet(replyTo: comment),
+                        onTap: () => _focusComposer(replyTo: comment),
                         borderRadius: BorderRadius.circular(14),
                         child: Padding(
                           padding: const EdgeInsets.all(5),
@@ -982,69 +1008,58 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   ],
                 ],
               ),
-              Padding(
-                padding: EdgeInsets.only(
-                  left: isTopLevel ? 36.0 : 30.0,
-                  top: 6.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    cachedBody!,
-                    // Expand/collapse replies indicator + count ONLY (no "reply/replies/hide" text)
-                    if (hasChildren) ...[
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            if (isCollapsed) {
-                              _collapsedCommentIds.remove(comment.id);
-                            } else {
-                              _collapsedCommentIds.add(comment.id);
-                            }
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 3,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isCollapsed
-                                    ? Icons.keyboard_arrow_down_rounded
-                                    : Icons.keyboard_arrow_up_rounded,
-                                size: 17,
-                                color: colors.primary,
-                              ),
-                              const SizedBox(width: 2),
-                              AnymeXText(
-                                '$totalReplies',
-                                size: 12,
-                                variant: TextVariant.bold,
-                                color: colors.primary,
-                              ),
-                            ],
-                          ),
+              // Row 2: Comment body aligned flush-left with avatar (just like Thread Post)
+              const SizedBox(height: 8),
+              cachedBody!,
+              // Row 3: Expand/collapse replies indicator + count ONLY (no "replies/hide" text)
+              if (hasChildren) ...[
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedCommentIds.remove(comment.id);
+                      } else {
+                        _expandedCommentIds.add(comment.id);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 17,
+                          color: colors.primary,
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(width: 2),
+                        AnymeXText(
+                          '$totalReplies',
+                          size: 12,
+                          variant: TextVariant.bold,
+                          color: colors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );
       },
     );
 
-    final childrenWidget = (hasChildren && !isCollapsed)
+    final childrenWidget = (hasChildren && isExpanded)
         ? Container(
             margin: EdgeInsets.only(
-              left: isTopLevel ? 14.0 : (depth < 4 ? 10.0 : 0.0),
+              left: isTopLevel ? 12.0 : (depth < 4 ? 10.0 : 0.0),
               top: 8.0,
             ),
             padding: const EdgeInsets.only(left: 12.0),
@@ -1066,7 +1081,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                       context,
                       comment.childComments[i],
                       depth: depth + 1,
-                      parentAuthorName: comment.user?.name,
                     ),
                   ),
               ],
@@ -1100,7 +1114,8 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     return CircleAvatar(
       radius: size / 2,
       backgroundColor: colors.primary.withValues(alpha: 0.15),
-      child: Icon(Icons.person_rounded, size: size * 0.6, color: colors.primary),
+      child:
+          Icon(Icons.person_rounded, size: size * 0.6, color: colors.primary),
     );
   }
 

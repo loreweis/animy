@@ -268,21 +268,24 @@ class AnilistThreadsService {
     return null;
   }
 
-  static Future<(List<AnilistThreadComment>, bool)> fetchThreadComments({
+  /// NOTE: Do NOT pass `sort` to AniList's `threadComments(threadId: ...)`
+  /// query — AniList's API drops `childComments` to null and ignores `ID_DESC`
+  /// whenever `sort` is supplied. Pagination handles Oldest (1 -> lastPage)
+  /// vs Newest (lastPage -> 1 reversed) while preserving full `childComments`.
+  static Future<(List<AnilistThreadComment>, bool, int)> fetchThreadComments({
     required int threadId,
     int page = 1,
     int perPage = 25,
-    String sort = 'ID',
   }) async {
     const query = r'''
-      query ($threadId: Int, $page: Int, $perPage: Int, $sort: [ThreadCommentSort]) {
+      query ($threadId: Int, $page: Int, $perPage: Int) {
         Page(page: $page, perPage: $perPage) {
           pageInfo {
             currentPage
             lastPage
             hasNextPage
           }
-          threadComments(threadId: $threadId, sort: $sort) {
+          threadComments(threadId: $threadId) {
             id
             userId
             threadId
@@ -312,13 +315,12 @@ class AnilistThreadsService {
         'threadId': threadId,
         'page': page,
         'perPage': perPage,
-        'sort': [sort],
       },
     );
 
     final pageObj = data?['data']?['Page'] as Map<String, dynamic>?;
     if (pageObj == null) {
-      return (<AnilistThreadComment>[], false);
+      return (<AnilistThreadComment>[], false, 1);
     }
 
     final rawList = pageObj['threadComments'] as List<dynamic>? ?? const [];
@@ -331,8 +333,10 @@ class AnilistThreadsService {
           ),
         )
         .toList();
-    final hasNext = pageObj['pageInfo']?['hasNextPage'] == true;
-    return (comments, hasNext);
+    final pageInfo = pageObj['pageInfo'] as Map<String, dynamic>?;
+    final hasNext = pageInfo?['hasNextPage'] == true;
+    final lastPage = (pageInfo?['lastPage'] as num?)?.toInt() ?? page;
+    return (comments, hasNext, lastPage < 1 ? 1 : lastPage);
   }
 
   static Future<({int likeCount, bool isLiked})?> toggleThreadLike(
