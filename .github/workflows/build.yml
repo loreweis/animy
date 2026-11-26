@@ -122,8 +122,7 @@ jobs:
           GIT_CLIENT_SECRET: ${{ secrets.GIT_CLIENT_SECRET }}
           GIT_CALLBACK_SCHEME: ${{ secrets.GIT_CALLBACK_SCHEME }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          WATCHIUM_SERVER_URL: ${{ secrets.WATCHIUM_SERVER_URL }}
-          WATCHIUM_API_TOKEN: ${{ secrets.WATCHIUM_API_TOKEN }}
+
         run: |
           cat > .env << EOF
           AL_CLIENT_ID=$AL_CLIENT_ID
@@ -137,8 +136,7 @@ jobs:
           GIT_CLIENT_SECRET=$GIT_CLIENT_SECRET
           GIT_CALLBACK_SCHEME=$GIT_CALLBACK_SCHEME
           TMDB_API_KEY=$TMDB_API_KEY
-          WATCHIUM_SERVER_URL=$WATCHIUM_SERVER_URL
-          WATCHIUM_API_TOKEN=$WATCHIUM_API_TOKEN
+
           EOF
 
       - name: Build Android (arm64-v8a only)

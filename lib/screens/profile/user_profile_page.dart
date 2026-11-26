@@ -144,20 +144,10 @@ class _UserProfilePageState extends State<UserProfilePage>
             await commentum.fetchUserProfile(widget.userId.toString());
         if (profileData != null && mounted) {
           setState(() {
-            _customBanner = profileData['banner_url'] as String?;
-            _customDecoration = profileData['avatar_decoration'] as String?;
-            _customEffect = profileData['profile_effect_url'] as String?;
             if (profileData['linked_accounts'] is Map) {
               _linkedAccounts =
                   Map<String, dynamic>.from(profileData['linked_accounts']);
             }
-          });
-        }
-        final points =
-            await commentum.getUserPoints(targetUserId: widget.userId.toString());
-        if (points != null && mounted) {
-          setState(() {
-            _userPoints = points;
           });
         }
       } catch (e) {

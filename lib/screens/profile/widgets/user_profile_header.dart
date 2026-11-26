@@ -63,10 +63,7 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
-    final effectiveBanner =
-        (widget.customBanner != null && widget.customBanner!.trim().isNotEmpty)
-            ? widget.customBanner!
-            : (user.cover ?? '');
+    final effectiveBanner = user.cover ?? '';
     final hasBanner = effectiveBanner.trim().isNotEmpty;
     final imageUrl = hasBanner ? effectiveBanner : (user.avatar ?? '');
     final name = user.name ?? 'Guest';
@@ -101,6 +98,13 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
                 fit: StackFit.expand,
                 children: [
                   if (imageUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: ProfileBodyOnlyBanner(
+                        imageUrl: imageUrl,
+                        fallbackUrl: user.avatar,
+                      ),
+                    ),
+                  if (imageUrl.isNotEmpty)
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {
@@ -115,25 +119,7 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
                       },
                       child: const SizedBox.expand(),
                     ),
-                  if ((Get.isRegistered<CommentumService>() &&
-                          Get.find<CommentumService>()
-                              .renderProfileEffects
-                              .value) &&
-                      widget.profileEffect != null &&
-                      widget.profileEffect!.isNotEmpty)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: Opacity(
-                          opacity: 0.6,
-                          child: CachedNetworkImage(
-                            imageUrl: widget.profileEffect!,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          ),
-                        ),
-                      ),
-                    ),
+
                 ],
               ),
             ),
@@ -182,7 +168,7 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
                         },
                         child: AnymeXDecoratedAvatar(
                           avatarUrl: user.avatar,
-                          decorationUrl: widget.avatarDecoration,
+                          decorationUrl: null,
                           size: 190,
                           decorationScale: 1.25,
                           borderRadius: BorderRadius.circular(12),
@@ -278,41 +264,7 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
                                           ],
                                         ),
                                       ),
-                                      if (widget.userPoints != null) ...[
-                                        const SizedBox(width: 10),
-                                        GestureDetector(
-                                          // Leaderboard entry hidden.
-                                          // onTap: () => LeaderboardSheet.show(context),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.black.withOpacity(0.4),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(
-                                                    Icons.emoji_events_rounded,
-                                                    size: 12,
-                                                    color: Color(0xFFFFD700)),
-                                                const SizedBox(width: 4),
-                                                AnymeXText(
-                                                  context.l10n.pts4(widget.userPoints!.tier.toUpperCase(), widget.userPoints!.displayPoints),
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+
                                       if (widget.linkedAccounts != null &&
                                           widget
                                               .linkedAccounts!.isNotEmpty) ...[

@@ -115,12 +115,7 @@ const List<PlayerControlItemMeta> playerControlCatalog = [
     icon: Icons.launch_rounded,
     defaultSlot: 'right',
   ),
-  PlayerControlItemMeta(
-    id: 'watch_together',
-    name: 'Watch Together',
-    icon: Icons.people_outline_rounded,
-    defaultSlot: 'right',
-  ),
+
   PlayerControlItemMeta(
     id: 'cast',
     name: 'Cast to Device',
@@ -342,7 +337,7 @@ bool shouldDisplayPlayerControl(String id, PlayerController controller) {
   if (id == 'pip' && !(Platform.isAndroid || Platform.isIOS)) {
     return false;
   }
-  if (id == 'watch_together' && controller.isOffline.value) {
+  if (id == 'watch_together') {
     return false;
   }
   if (id == 'torrent' && !controller.isTorrentStream.value) {

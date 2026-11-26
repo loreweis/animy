@@ -402,11 +402,7 @@ class Header extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                     child: AnymeXDecoratedAvatar(
                       avatarUrl: profileData.profileData.value.avatar,
-                      decorationUrl: Get.isRegistered<CommentumService>()
-                          ? Get.find<CommentumService>()
-                              .currentUserDecoration
-                              .value
-                          : null,
+                      decorationUrl: null,
                       size: 45,
                     ),
                   )

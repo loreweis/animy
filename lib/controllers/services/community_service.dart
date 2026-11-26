@@ -447,8 +447,7 @@ class CommunityService extends GetxController {
     );
   }
 
-  RxBool communityEnabled =
-      RxBool(General.showCommunityRecommendations.get<bool>(true));
+  RxBool communityEnabled = RxBool(false);
   RxBool hideNsfw = RxBool(General.hideNsfwRecommendations.get<bool>(true));
 
   bool get _communityEnabled => communityEnabled.value;
@@ -610,6 +609,7 @@ class CommunityService extends GetxController {
   }
 
   Future<void> fetchCommunityAnime() async {
+    if (!communityEnabled.value) return;
     final serviceType = Get.find<ServiceHandler>().serviceType.value;
 
     if (communityAnimes.isNotEmpty && _cachedServiceType == serviceType) return;
@@ -648,6 +648,7 @@ class CommunityService extends GetxController {
   }
 
   Future<void> fetchCommunityManga() async {
+    if (!communityEnabled.value) return;
     final serviceType = Get.find<ServiceHandler>().serviceType.value;
 
     if (communityMangas.isNotEmpty && _cachedServiceType == serviceType) return;
@@ -681,7 +682,7 @@ class CommunityService extends GetxController {
   }
 
   Future<void> fetchCommunityShows() async {
-    if (communityShows.isNotEmpty) return;
+    if (!communityEnabled.value || communityShows.isNotEmpty) return;
 
     isLoadingShows.value = true;
     showsError.value = '';
@@ -712,7 +713,7 @@ class CommunityService extends GetxController {
   }
 
   Future<void> fetchCommunityMovies() async {
-    if (communityMovies.isNotEmpty) return;
+    if (!communityEnabled.value || communityMovies.isNotEmpty) return;
 
     isLoadingMovies.value = true;
     moviesError.value = '';
@@ -743,6 +744,7 @@ class CommunityService extends GetxController {
   }
 
   Future<void> fetchAll() async {
+    if (!communityEnabled.value) return;
     try {
       await Future.wait([
         fetchCommunityAnime(),

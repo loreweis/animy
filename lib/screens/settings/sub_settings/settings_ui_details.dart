@@ -192,13 +192,15 @@ class _SettingsUiDetailsState extends State<SettingsUiDetails> {
                       icon: Icons.fullscreen_rounded,
                       title: context.l10n.posterBlurScope,
                       value: settings.detailsBlurScope,
-                      options: const [0, 1, 2],
+                      options: const [0, 1, 2, 3],
                       optionLabelTransformer: (val) {
                         switch (val) {
                           case 1:
                             return 'Full Screen';
                           case 2:
                             return 'Gradient';
+                          case 3:
+                            return 'Body Only';
                           default:
                             return 'Header Only';
                         }
@@ -209,6 +211,8 @@ class _SettingsUiDetailsState extends State<SettingsUiDetails> {
                             return 'Blurs the entire page background behind details.';
                           case 2:
                             return 'Blurs top banner and seamlessly dissolves into the artwork color below.';
+                          case 3:
+                            return 'Keeps the header cover sharp without blur and blurs only the page body below.';
                           default:
                             return 'Blurs only the top banner and fades smoothly into the page.';
                         }
@@ -669,7 +673,7 @@ class _SettingsUiDetailsState extends State<SettingsUiDetails> {
 
         return Stack(
           children: [
-            if (blurScope == 1) ...[
+            if (blurScope == 1 || blurScope == 3) ...[
               Positioned.fill(
                 child: RepaintBoundary(
                   child: buildBlurredImage(),

@@ -89,7 +89,7 @@ class UISettings {
     this.tintBlur = true,
     this.usePosterForBlur = true,
     this.detailsBlurStyle = 0,
-    this.detailsBlurScope = 1,
+    this.detailsBlurScope = 3,
     this.detailsOledMode = false,
   })  : homePageCards = homePageCards ??
             {

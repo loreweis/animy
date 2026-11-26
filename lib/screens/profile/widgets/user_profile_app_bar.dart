@@ -18,7 +18,6 @@ import 'package:anymex/widgets/anymex_widgets/anymex_decorated_avatar.dart';
 import 'package:anymex/database/comments/model/user_points.dart';
 import 'package:anymex/widgets/anymex_widgets/linked_accounts_badges.dart';
 import 'package:anymex/services/commentum_service.dart';
-import 'package:anymex/screens/anime/widgets/comments/widgets/leaderboard_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class UserProfileAppBar extends StatefulWidget {
@@ -232,15 +231,7 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
                             ));
                           },
                         ),
-                        buildProfileSheetOption(
-                          ctx,
-                          icon: Icons.emoji_events_outlined,
-                          label: context.l10n.communityLeaderboard,
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            LeaderboardSheet.show(context);
-                          },
-                        ),
+
                       ],
                     ),
                   ),
@@ -256,6 +247,13 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
           fit: StackFit.expand,
           children: [
             if (imageUrl.isNotEmpty)
+              Positioned.fill(
+                child: ProfileBodyOnlyBanner(
+                  imageUrl: imageUrl,
+                  fallbackUrl: avatarUrl,
+                ),
+              ),
+            if (imageUrl.isNotEmpty)
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
@@ -270,22 +268,7 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
                 },
                 child: const SizedBox.expand(),
               ),
-            if ((Get.isRegistered<CommentumService>() &&
-                    Get.find<CommentumService>().renderProfileEffects.value) &&
-                widget.profileEffect != null &&
-                widget.profileEffect!.isNotEmpty)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.6,
-                    child: CachedNetworkImage(
-                      imageUrl: widget.profileEffect!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-              ),
+
             Positioned(
               left: 16,
               right: 16,
@@ -310,7 +293,7 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
                       },
                       child: AnymeXDecoratedAvatar(
                         avatarUrl: avatarUrl,
-                        decorationUrl: widget.avatarDecoration,
+                        decorationUrl: null,
                         size: 92,
                         decorationScale: 1.25,
                         borderRadius: BorderRadius.circular(14),
@@ -492,39 +475,7 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
                                   ],
                                 ),
                               ),
-                              if (widget.userPoints != null)
-                                GestureDetector(
-                                  onTap: () => LeaderboardSheet.show(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.4),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.emoji_events_rounded,
-                                          size: 12,
-                                          color: Color(0xFFFFD700),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        AnymeXText(
-                                          context.l10n.pts4(widget.userPoints!.tier.toUpperCase(), widget.userPoints!.displayPoints),
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+
                               if (widget.linkedAccounts != null &&
                                   widget.linkedAccounts!.isNotEmpty)
                                 LinkedAccountsBadges(

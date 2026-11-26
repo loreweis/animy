@@ -551,7 +551,7 @@ class Settings extends GetxController {
   set detailsBlurScope(int value) {
     uiSettings.update((s) => s?.detailsBlurScope = value);
     UISettingsKeys.detailsBlurScope.set(value);
-    fullScreenBlur = value == 1;
+    fullScreenBlur = value == 1 || value == 3;
     uiSettings.refresh();
     update();
   }

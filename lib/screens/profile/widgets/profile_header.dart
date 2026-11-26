@@ -2,6 +2,7 @@ import 'package:anymex/l10n/l10n_extension.dart';
 import 'dart:io';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/models/Anilist/anilist_profile.dart';
+import 'package:anymex/screens/profile/widgets/profile_common.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_fullscreen_image_viewer.dart';
 import 'package:anymex/screens/profile/widgets/hover_action_button.dart';
@@ -15,11 +16,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/screens/settings/sub_settings/settings_anilist_api.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
-import 'package:anymex/screens/profile/widgets/decoration_closet_sheet.dart';
 import 'package:anymex/services/commentum_service.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_decorated_avatar.dart';
 import 'package:anymex/screens/profile/compatibility/compatibility_input_page.dart';
-import 'package:anymex/screens/anime/widgets/comments/widgets/leaderboard_sheet.dart';
 import 'package:anymex/widgets/anymex_widgets/linked_accounts_badges.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -72,14 +71,7 @@ class DesktopProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commentum = Get.isRegistered<CommentumService>()
-        ? Get.find<CommentumService>()
-        : null;
-    final equippedBanner = commentum?.currentUserBanner.value;
-    final equippedDeco = commentum?.currentUserDecoration.value;
-    final effectiveCover = (equippedBanner != null && equippedBanner.isNotEmpty)
-        ? equippedBanner
-        : user.cover;
+    final effectiveCover = user.cover;
     final hasBanner =
         effectiveCover != null && effectiveCover.trim().isNotEmpty;
     final imageUrl = hasBanner ? effectiveCover : (user.avatar ?? '');
@@ -120,6 +112,13 @@ class DesktopProfileHeader extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (imageUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: ProfileBodyOnlyBanner(
+                        imageUrl: imageUrl,
+                        fallbackUrl: user.avatar,
+                      ),
+                    ),
+                  if (imageUrl.isNotEmpty)
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {
@@ -134,32 +133,7 @@ class DesktopProfileHeader extends StatelessWidget {
                       },
                       child: const SizedBox.expand(),
                     ),
-                  Obx(() {
-                    final commentum = Get.isRegistered<CommentumService>()
-                        ? Get.find<CommentumService>()
-                        : null;
-                    final effectUrl =
-                        commentum?.currentUserProfileEffect.value;
-                    final renderEffect =
-                        (commentum?.renderProfileEffects.value ?? true) &&
-                            effectUrl != null &&
-                            effectUrl.isNotEmpty;
-                    if (!renderEffect) return const SizedBox.shrink();
 
-                    return Positioned.fill(
-                      child: IgnorePointer(
-                        child: Opacity(
-                          opacity: 0.6,
-                          child: CachedNetworkImage(
-                            imageUrl: effectUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
                 ],
               ),
             ),
@@ -210,7 +184,7 @@ class DesktopProfileHeader extends StatelessWidget {
                         },
                         child: AnymeXDecoratedAvatar(
                           avatarUrl: user.avatar,
-                          decorationUrl: equippedDeco,
+                          decorationUrl: null,
                           size: 190,
                           decorationScale: 1.25,
                           borderRadius: BorderRadius.circular(12),
@@ -397,19 +371,7 @@ class DesktopProfileHeader extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 15.0),
                         child: Row(
                           children: [
-                            if (Get.isRegistered<CommentumService>()) ...[
-                              HoverActionButton(
-                                icon: Icons.palette_outlined,
-                                onTap: () =>
-                                    DecorationClosetSheet.show(context),
-                              ),
-                              const SizedBox(width: 10),
-                            ],
-                            HoverActionButton(
-                              icon: Icons.emoji_events_outlined,
-                              onTap: () => LeaderboardSheet.show(context),
-                            ),
-                            const SizedBox(width: 10),
+
                             HoverActionButton(
                               icon: Icons.north_east_rounded,
                               onTap: () => launchUrlString(
@@ -534,15 +496,7 @@ class DesktopProfileHeader extends StatelessWidget {
                                                   const CompatibilityInputPage());
                                             },
                                           ),
-                                          _buildBottomSheetOption(
-                                            ctx,
-                                            icon: Icons.emoji_events_outlined,
-                                            label: context.l10n.communityLeaderboard,
-                                            onTap: () {
-                                              Navigator.pop(ctx);
-                                              LeaderboardSheet.show(context);
-                                            },
-                                          ),
+
                                         ],
                                       ),
                                     ),
@@ -583,18 +537,10 @@ class MobileProfileHeaderSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final commentum = Get.isRegistered<CommentumService>()
-        ? Get.find<CommentumService>()
-        : null;
-    final equippedBanner = commentum?.currentUserBanner.value;
-    final effectiveBanner =
-        (equippedBanner != null && equippedBanner.isNotEmpty)
-            ? equippedBanner
-            : bannerUrl;
+    final effectiveBanner = bannerUrl;
     final hasBanner =
         effectiveBanner != null && effectiveBanner.trim().isNotEmpty;
     final imageUrl = hasBanner ? effectiveBanner : avatarUrl;
-    final equippedDeco = commentum?.currentUserDecoration.value;
     final name = user.name ?? 'Guest';
     final handler = Get.find<ServiceHandler>();
     final donatorTier = handler.profileData.value.donatorTier ?? 0;
@@ -655,41 +601,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
         ),
       ),
       actions: [
-        if (commentum != null)
-          Container(
-            margin: EdgeInsets.only(
-              top: 8 + desktopTopPad,
-              bottom: 8,
-              left: 4,
-              right: 8,
-            ),
-            decoration: BoxDecoration(
-              color: context.theme.colorScheme.surface.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.palette_outlined),
-              tooltip: context.l10n.decorationCloset,
-              onPressed: () => DecorationClosetSheet.show(context),
-            ),
-          ),
-        Container(
-          margin: EdgeInsets.only(
-            top: 8 + desktopTopPad,
-            bottom: 8,
-            left: 4,
-            right: 8,
-          ),
-          decoration: BoxDecoration(
-            color: context.theme.colorScheme.surface.withOpacity(0.5),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.emoji_events_outlined),
-            tooltip: context.l10n.leaderboard,
-            onPressed: () => LeaderboardSheet.show(context),
-          ),
-        ),
+
         Container(
           margin: EdgeInsets.only(
             top: 8 + desktopTopPad,
@@ -739,16 +651,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        if (commentum != null)
-                          _buildBottomSheetOption(
-                            ctx,
-                            icon: Icons.checkroom_rounded,
-                            label: context.l10n.decorationCloset,
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              DecorationClosetSheet.show(context);
-                            },
-                          ),
+
                         _buildBottomSheetOption(
                           ctx,
                           icon: Icons.north_east_rounded,
@@ -808,15 +711,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
                             navigate(() => const CompatibilityInputPage());
                           },
                         ),
-                        _buildBottomSheetOption(
-                          ctx,
-                          icon: Icons.emoji_events_outlined,
-                          label: context.l10n.communityLeaderboard,
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            LeaderboardSheet.show(context);
-                          },
-                        ),
+
                       ],
                     ),
                   ),
@@ -832,6 +727,13 @@ class MobileProfileHeaderSliver extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (imageUrl.isNotEmpty)
+              Positioned.fill(
+                child: ProfileBodyOnlyBanner(
+                  imageUrl: imageUrl,
+                  fallbackUrl: avatarUrl,
+                ),
+              ),
+            if (imageUrl.isNotEmpty)
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {
@@ -846,27 +748,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
                 },
                 child: const SizedBox.expand(),
               ),
-            Obx(() {
-              final effectUrl = commentum?.currentUserProfileEffect.value;
-              final renderEffect =
-                  (commentum?.renderProfileEffects.value ?? true) &&
-                      effectUrl != null &&
-                      effectUrl.isNotEmpty;
-              if (!renderEffect) return const SizedBox.shrink();
 
-              return Positioned.fill(
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.6,
-                    child: CachedNetworkImage(
-                      imageUrl: effectUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-              );
-            }),
             Positioned(
               left: 16,
               right: 16,
@@ -891,7 +773,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
                       },
                       child: AnymeXDecoratedAvatar(
                         avatarUrl: avatarUrl,
-                        decorationUrl: equippedDeco,
+                        decorationUrl: null,
                         size: 110,
                         decorationScale: 1.25,
                         borderRadius: BorderRadius.circular(14),

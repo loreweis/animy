@@ -174,12 +174,7 @@ class AnilistAuth extends GetxController {
       await fetchUserListsBatched();
       prefetchSettings();
 
-      try {
-        final commentumService = Get.find<CommentumService>();
-        await commentumService.getUserRole();
-      } catch (e) {
-        Logger.i('Error checking Commentum role during auto login: $e');
-      }
+
 
       if (Get.isRegistered<NotificationController>()) {
         Get.find<NotificationController>().loadAnilistNotifications();
@@ -330,12 +325,7 @@ class AnilistAuth extends GetxController {
                   await fetchUserProfile();
                   await fetchUserAnimeList();
                   await fetchUserMangaList();
-                  try {
-                    final commentumService = Get.find<CommentumService>();
-                    await commentumService.getUserRole();
-                  } catch (e) {
-                    Logger.i('Error checking Commentum role: $e');
-                  }
+
                   if (Get.isRegistered<NotificationController>()) {
                     Get.find<NotificationController>().loadAnilistNotifications();
                   }
@@ -386,12 +376,7 @@ class AnilistAuth extends GetxController {
       await fetchUserProfile();
       await fetchUserAnimeList();
       await fetchUserMangaList();
-      try {
-        final commentumService = Get.find<CommentumService>();
-        await commentumService.getUserRole();
-      } catch (e) {
-        Logger.i('Error checking Commentum role: $e');
-      }
+
       if (Get.isRegistered<NotificationController>()) {
         Get.find<NotificationController>().loadAnilistNotifications();
       }

@@ -320,9 +320,7 @@ void _initializeGetxController() async {
     Get.put(ServiceHandler());
     Get.put(TrackBindingController());
     Get.put(GreetingController());
-    Get.put(CommentumService());
-    Get.put(CommentPreloader());
-    Get.put(WatchiumService(), permanent: true);
+
     Get.put(GistSyncController(), permanent: true);
     Get.put(DownloadController(), permanent: true);
     Get.put(NotificationService(), permanent: true);
@@ -410,12 +408,7 @@ class _MainAppState extends State<MainApp> {
       }
     });
 
-    if (!Platform.isLinux) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        safeCall(() => FcmService.init(),
-            errorMessage: 'Failed to initialize FCM');
-      });
-    }
+
 
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -815,13 +808,7 @@ class _FilterScreenState extends State<FilterScreen> {
                                       .value;
                                 }
                               } catch (_) {}
-                              try {
-                                if (Get.isRegistered<CommentumService>()) {
-                                  unread += Get.find<CommentumService>()
-                                      .unreadNotificationCount
-                                      .value;
-                                }
-                              } catch (_) {}
+
                               final avatar = CircleAvatar(
                                   radius: 24,
                                   backgroundColor: Theme.of(context)

@@ -546,6 +546,7 @@ class Deeplink {
       return;
     }
 
+    if (!Get.isRegistered<WatchiumService>()) return;
     final watchium = Get.find<WatchiumService>();
     successSnackBar(Get.context!.l10n.joiningRoom(code.toString()));
 

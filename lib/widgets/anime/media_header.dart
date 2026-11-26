@@ -68,20 +68,77 @@ class MediaHeader extends StatelessWidget {
     Widget backdropLayer = Obx(() {
       final isOled = settingsController.detailsOledMode;
       final blurScope = settingsController.detailsBlurScope;
-      if (blurScope != 0 && !isOled) {
+      final isBodyOnly = blurScope == 3 && !isOled;
+      if (blurScope != 0 && !isOled && !isBodyOnly) {
         return const SizedBox.shrink();
       }
       final usePoster = settingsController.usePosterForBlur;
       final effectiveCover =
           (data?.cover?.isNotEmpty == true ? data!.cover! : posterUrl);
-      final blurSourceUrl = isOled
+      final blurSourceUrl = (isOled || isBodyOnly)
           ? effectiveCover
           : (usePoster ? posterUrl : effectiveCover);
-      final blurFallbackUrl =
-          isOled ? posterUrl : (usePoster ? effectiveCover : posterUrl);
+      final blurFallbackUrl = (isOled || isBodyOnly)
+          ? posterUrl
+          : (usePoster ? effectiveCover : posterUrl);
       if (blurSourceUrl.isEmpty) {
         return const SizedBox.shrink();
       }
+
+      if (isBodyOnly) {
+        final brightness =
+            UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
+        return RepaintBoundary(
+          child: ShaderMask(
+            shaderCallback: (bounds) {
+              return const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.0, 0.72, 1.0],
+                colors: [
+                  Colors.black,
+                  Colors.black,
+                  Colors.transparent,
+                ],
+              ).createShader(bounds);
+            },
+            blendMode: BlendMode.dstIn,
+            child: ColorFiltered(
+              colorFilter: ColorFilter.matrix([
+                brightness,
+                0,
+                0,
+                0,
+                0,
+                0,
+                brightness,
+                0,
+                0,
+                0,
+                0,
+                0,
+                brightness,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+              ]),
+              child: AnymeXImage(
+                imageUrl: blurSourceUrl,
+                errorImage: blurFallbackUrl,
+                radius: 0,
+                height: headerHeight,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        );
+      }
+
       final tintBlur = isOled ? false : settingsController.tintBlur;
       final blurColor = tintBlur ? colors.primary.opaque(0.4) : null;
       final isMesh = settingsController.detailsBlurStyle == 1;
@@ -214,7 +271,8 @@ class MediaHeader extends StatelessWidget {
             child: Obx(() {
               final isOled = settingsController.detailsOledMode;
               final blurScope = settingsController.detailsBlurScope;
-              if (blurScope != 0 && !isOled) {
+              final isBodyOnly = blurScope == 3 && !isOled;
+              if (blurScope != 0 && !isOled && !isBodyOnly) {
                 return const SizedBox.shrink();
               }
               return Container(
@@ -227,14 +285,23 @@ class MediaHeader extends StatelessWidget {
                             Colors.black.withValues(alpha: 0.70),
                             Colors.black,
                           ]
-                        : [
-                            colors.surface.opaque(0.60, iReallyMeanIt: true),
-                            colors.surface.opaque(0.25, iReallyMeanIt: true),
-                            colors.surface.opaque(0, iReallyMeanIt: true),
-                          ],
+                        : isBodyOnly
+                            ? [
+                                Colors.black.withValues(alpha: 0.35),
+                                Colors.transparent,
+                                colors.surface.withValues(alpha: 0.45),
+                                Colors.transparent,
+                              ]
+                            : [
+                                colors.surface.opaque(0.60, iReallyMeanIt: true),
+                                colors.surface.opaque(0.25, iReallyMeanIt: true),
+                                colors.surface.opaque(0, iReallyMeanIt: true),
+                              ],
                     stops: isOled
                         ? const [0.0, 0.35, 0.75, 1.0]
-                        : const [0.0, 0.50, 1.0],
+                        : isBodyOnly
+                            ? const [0.0, 0.38, 0.78, 1.0]
+                            : const [0.0, 0.50, 1.0],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),

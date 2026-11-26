@@ -23,7 +23,7 @@ import 'package:anymex/l10n/l10n_extension.dart';
 
 class UpdateManager {
   static const String _stableRepoUrl =
-      'https://api.github.com/repos/RyanYuuki/AnymeX/releases/latest';
+      'https://api.github.com/repos/loreweis/animy/releases/latest';
 
   static const String _betaRepoUrl =
       'https://api.github.com/repos/Shebyyy/AnymeX-Preview/releases/latest';

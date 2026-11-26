@@ -439,15 +439,7 @@ class SettingsSheet extends StatelessWidget {
             navigate(() => const WatchOffline());
           },
         ),
-        AnymeXTile(
-          icon: Icons.people_rounded,
-          title: context.l10n.watchTogether,
-          subtitle: context.l10n.syncWatchPartyWithFriends,
-          onTap: () {
-            Get.back();
-            navigate(() => const WatchiumPage());
-          },
-        ),
+
         Obx(() => AnymeXTile.toggle(
               icon: settingsController.isIncognito.value
                   ? Iconsax.eye_slash

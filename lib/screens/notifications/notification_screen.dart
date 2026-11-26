@@ -35,19 +35,10 @@ class NotificationScreen extends GetView<NotificationController> {
         NestedHeader(
           title: context.l10n.notifications,
           action: Obx(() {
-            final isAnilist = controller.selectedTab.value == 0;
-            final hasUnread = isAnilist
-                ? anilistAuth.unreadAnilistCount.value > 0
-                : controller.unreadCount.value > 0;
+            final hasUnread = anilistAuth.unreadAnilistCount.value > 0;
             if (!hasUnread) return const SizedBox.shrink();
             return TextButton.icon(
-              onPressed: () {
-                if (isAnilist) {
-                  controller.markAnilistAllRead();
-                } else {
-                  controller.markAllAsRead();
-                }
-              },
+              onPressed: () => controller.markAnilistAllRead(),
               icon: Icon(
                 Icons.done_all_rounded,
                 size: 18,
@@ -65,14 +56,8 @@ class NotificationScreen extends GetView<NotificationController> {
             );
           }),
         ),
-        _buildTabs(context, colorScheme),
         Expanded(
-          child: Obx(() {
-            if (controller.selectedTab.value == 0) {
-              return _buildAnilistTab(context, colorScheme);
-            }
-            return _buildCommunityTab(context, colorScheme);
-          }),
+          child: _buildAnilistTab(context, colorScheme),
         ),
       ]),
     );

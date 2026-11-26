@@ -2727,31 +2727,7 @@ class _CompatibilityResultPageState extends State<CompatibilityResultPage> {
   }
 
   String _buildShareUrl(String name1, String name2) {
-    String serverUrl = (dotenv.env['WATCHIUM_SERVER_URL'] ?? '').trim();
-    if (serverUrl.isEmpty) {
-      serverUrl = WatchiumKeys.serverUrl.get<String>('').trim();
-    }
-    if (serverUrl.isEmpty) {
-      try {
-        final envFile = File('.env');
-        if (envFile.existsSync()) {
-          final lines = envFile.readAsLinesSync();
-          for (final line in lines) {
-            final trimmed = line.trim();
-            if (trimmed.startsWith('WATCHIUM_SERVER_URL=')) {
-              serverUrl =
-                  trimmed.substring('WATCHIUM_SERVER_URL='.length).trim();
-              break;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-    serverUrl = serverUrl.replaceAll(RegExp(r'/+$'), '');
-    if (serverUrl.isNotEmpty) {
-      return '$serverUrl/animatch/${Uri.encodeComponent(name1)}/${Uri.encodeComponent(name2)}';
-    }
-    return 'anymex://animatch?user1=${Uri.encodeComponent(name1)}&user2=${Uri.encodeComponent(name2)}';
+    return 'mysync://animatch?user1=${Uri.encodeComponent(name1)}&user2=${Uri.encodeComponent(name2)}';
   }
 
   Future<void> _shareCard(

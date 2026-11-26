@@ -93,7 +93,7 @@ class _WatchScreenState extends State<WatchScreen> {
         widget.anilistData,
         widget.episodeTracks,
         shouldTrack: widget.shouldTrack));
-    _initWatchiumSync();
+
     final settings = Get.find<Settings>();
     if (settings.usePosterColor &&
         widget.anilistData.color.isEmpty &&
@@ -152,9 +152,7 @@ class _WatchScreenState extends State<WatchScreen> {
     } catch (_) {}
   }
 
-  Future<bool> _onWillPop() {
-    return WatchiumService.confirmAndLeave(context);
-  }
+  Future<bool> _onWillPop() async => true;
 
   @override
   void dispose() {
@@ -288,13 +286,7 @@ class _WatchScreenState extends State<WatchScreen> {
                       left: 0,
                       child: SpeedPopup(controller: controller),
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      child: WatchTogetherPopup(controller: controller),
-                    ),
+
                     Positioned(
                       right: 0,
                       top: 0,
@@ -316,14 +308,7 @@ class _WatchScreenState extends State<WatchScreen> {
                       left: 0,
                       child: CastDevicePane(controller: controller),
                     ),
-                    const Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      left: 0,
-                      child: WatchiumPartyPopup(),
-                    ),
-                    const _WatchiumOverlays(),
+
                   ],
                 ],
               );

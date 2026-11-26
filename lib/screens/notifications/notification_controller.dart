@@ -7,8 +7,10 @@ import 'package:anymex/models/Anilist/anilist_notification.dart';
 import 'package:anymex/services/anilist_notification_service.dart';
 
 class NotificationController extends GetxController {
-  final CommentumService _commentumService =
-      Get.find<CommentumService>();
+  CommentumService? get _commentumService =>
+      Get.isRegistered<CommentumService>()
+          ? Get.find<CommentumService>()
+          : null;
 
   final RxInt selectedTab = 0.obs;
 
@@ -228,15 +230,11 @@ class NotificationController extends GetxController {
     _authWorker = ever(auth.isLoggedIn, (bool loggedIn) {
       if (loggedIn) {
         loadAnilistNotifications();
-        loadNotifications();
-        loadUnreadCount();
       } else {
         anilistNotifications.clear();
         hasFetchedAnilist.value = false;
       }
     });
-    loadNotifications();
-    loadUnreadCount();
     loadAnilistNotifications();
   }
 
@@ -247,13 +245,15 @@ class NotificationController extends GetxController {
   }
 
   Future<void> loadNotifications() async {
+    final svc = _commentumService;
+    if (svc == null) return;
     isLoading.value = true;
     error.value = '';
     _currentPage = 1;
     _hasMore = true;
 
     try {
-      final result = await _commentumService.fetchNotificationHistory(
+      final result = await svc.fetchNotificationHistory(
         page: _currentPage,
         limit: _pageSize,
         type: _apiFilterType,
@@ -266,7 +266,7 @@ class NotificationController extends GetxController {
               NotificationItem.fromJson(n as Map<String, dynamic>))
           .toList();
       unreadCount.value = result['unread_count'] ?? 0;
-      _commentumService.unreadNotificationCount.value = unreadCount.value;
+      svc.unreadNotificationCount.value = unreadCount.value;
       _hasMore = notifications.length >= _pageSize;
     } catch (e) {
       error.value = 'Failed to load notifications';
@@ -276,13 +276,14 @@ class NotificationController extends GetxController {
   }
 
   Future<void> loadMoreNotifications() async {
-    if (isLoadingMore.value || !_hasMore) return;
+    final svc = _commentumService;
+    if (svc == null || isLoadingMore.value || !_hasMore) return;
 
     isLoadingMore.value = true;
     _currentPage++;
 
     try {
-      final result = await _commentumService.fetchNotificationHistory(
+      final result = await svc.fetchNotificationHistory(
         page: _currentPage,
         limit: _pageSize,
         type: _apiFilterType,
@@ -305,8 +306,12 @@ class NotificationController extends GetxController {
   }
 
   Future<void> loadUnreadCount() async {
-    unreadCount.value =
-        await _commentumService.getUnreadNotificationCount();
+    final svc = _commentumService;
+    if (svc == null) {
+      unreadCount.value = 0;
+      return;
+    }
+    unreadCount.value = await svc.getUnreadNotificationCount();
   }
 
   Future<void> markAsRead(int notificationId) async {
@@ -318,7 +323,7 @@ class NotificationController extends GetxController {
         : (item?.type == 'announcement_published' ? 'anymex' : null);
 
     final success =
-        await _commentumService.markNotificationRead(notificationId, clientType: clientType);
+        await _commentumService?.markNotificationRead(notificationId, clientType: clientType);
     if (success) {
       if (index != -1) {
         final updated = NotificationItem(
@@ -345,13 +350,13 @@ class NotificationController extends GetxController {
         notifications[index] = updated;
       }
       if (unreadCount.value > 0) unreadCount.value--;
-      _commentumService.unreadNotificationCount.value = unreadCount.value;
+      _commentumService?.unreadNotificationCount.value = unreadCount.value;
     }
   }
 
   Future<void> markAllAsRead() async {
     final success =
-        await _commentumService.markAllNotificationsRead(
+        await _commentumService?.markAllNotificationsRead(
       type: _apiFilterType,
     );
     if (success) {
@@ -379,7 +384,7 @@ class NotificationController extends GetxController {
               ))
           .toList();
       unreadCount.value = 0;
-      _commentumService.unreadNotificationCount.value = 0;
+      _commentumService?.unreadNotificationCount.value = 0;
     }
   }
 

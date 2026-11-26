@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/non_widgets/activity_composer_sheet.dart';
 import 'package:get/get.dart';
+import 'package:anymex/controllers/settings/settings.dart';
+import 'package:anymex/database/data_keys/keys.dart';
+import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 
 String getFollowLabel({bool? isFollowing, bool? isFollower}) {
@@ -361,5 +364,104 @@ class ProfileDesktopTabs extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+class ProfileBodyOnlyBanner extends StatelessWidget {
+  final String imageUrl;
+  final String? fallbackUrl;
+
+  const ProfileBodyOnlyBanner({
+    super.key,
+    required this.imageUrl,
+    this.fallbackUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isOled = settingsController.detailsOledMode;
+      final _ = settingsController.detailsBlurScope;
+      if (imageUrl.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      final brightness =
+          UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
+      final surface =
+          isOled ? Colors.black : Theme.of(context).colorScheme.surface;
+
+      return IgnorePointer(
+        child: RepaintBoundary(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ShaderMask(
+                shaderCallback: (bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.72, 1.0],
+                    colors: [
+                      Colors.black,
+                      Colors.black,
+                      Colors.transparent,
+                    ],
+                  ).createShader(bounds);
+                },
+                blendMode: BlendMode.dstIn,
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.matrix([
+                    brightness,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    brightness,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    brightness,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                  ]),
+                  child: AnymeXImage(
+                    imageUrl: imageUrl,
+                    errorImage: fallbackUrl,
+                    radius: 0,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.38, 0.78, 1.0],
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.transparent,
+                      surface.withValues(alpha: 0.45),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }

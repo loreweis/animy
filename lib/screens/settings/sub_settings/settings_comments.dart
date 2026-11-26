@@ -1,7 +1,5 @@
 import 'package:anymex/l10n/l10n_extension.dart';
 import 'package:anymex/database/data_keys/keys.dart';
-import 'package:anymex/screens/anime/widgets/comments/widgets/leaderboard_sheet.dart';
-import 'package:anymex/screens/profile/widgets/decoration_closet_sheet.dart';
 import 'package:anymex/screens/settings/sub_settings/settings_moderation.dart';
 import 'package:anymex/services/commentum_service.dart';
 import 'package:anymex/utils/function.dart';
@@ -88,73 +86,7 @@ class _SettingsCommentsState extends State<SettingsComments> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AnymeXSectionBuilder(
-                title: context.l10n.closetCommunity,
-                children: [
-                  AnymeXTile(
-                    icon: Icons.checkroom_rounded,
-                    title: context.l10n.openCloset,
-                    subtitle:
-                        context.l10n.avatarDecorationsNameplatesBannersProfileEffects,
-                    onTap: () => DecorationClosetSheet.show(context),
-                  ),
-                  AnymeXTile(
-                    icon: Icons.emoji_events_rounded,
-                    title: context.l10n.leaderboard,
-                    subtitle:
-                        context.l10n.viewUserRankingsTopContributorsReputation,
-                    onTap: () => LeaderboardSheet.show(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Obx(() {
-                final commentum = Get.isRegistered<CommentumService>()
-                    ? Get.find<CommentumService>()
-                    : null;
-                if (commentum == null) return const SizedBox.shrink();
-                return AnymeXSectionBuilder(
-                  title: context.l10n.appearance,
-                  children: [
-                    AnymeXTile.toggle(
-                      icon: Icons.auto_awesome_rounded,
-                      title: context.l10n.avatarDecorations,
-                      subtitle: context.l10n.showAnimatedFramesAroundUserAvatars,
-                      value: commentum.renderAvatarDecorations.value,
-                      onChanged: (v) => commentum.saveRenderPref(
-                          CommentKeys.renderAvatarDecorations, v),
-                    ),
-                    AnymeXTile.toggle(
-                      icon: Icons.badge_outlined,
-                      title: context.l10n.nameplates,
-                      subtitle:
-                          context.l10n.showNameplateBackgroundsOnCommentCards,
-                      value: commentum.renderNameplates.value,
-                      onChanged: (v) => commentum.saveRenderPref(
-                          CommentKeys.renderNameplates, v),
-                    ),
-                    AnymeXTile.toggle(
-                      icon: Icons.blur_on_rounded,
-                      title: context.l10n.profileEffects,
-                      subtitle:
-                          context.l10n.showAnimatedEffectOverlaysOnProfile,
-                      value: commentum.renderProfileEffects.value,
-                      onChanged: (v) => commentum.saveRenderPref(
-                          CommentKeys.renderProfileEffects, v),
-                    ),
-                    AnymeXTile.toggle(
-                      icon: Icons.image_outlined,
-                      title: context.l10n.customBanners,
-                      subtitle:
-                          context.l10n.showCustomProfileBannersFallsBack,
-                      value: commentum.renderBanners.value,
-                      onChanged: (v) => commentum.saveRenderPref(
-                          CommentKeys.renderBanners, v),
-                    ),
-                  ],
-                );
-              }),
-              const SizedBox(height: 16),
+
               Obx(() {
                 if (commentumService.currentUserId == null) {
                   return AnymeXSectionBuilder(

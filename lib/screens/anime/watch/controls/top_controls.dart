@@ -16,12 +16,7 @@ import 'package:get/get.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 
 Future<void> _handleBack() async {
-  final ctx = Get.context;
-  if (ctx == null) return;
-  final shouldClose = await WatchiumService.confirmAndLeave(ctx);
-  if (shouldClose) {
-    Get.back();
-  }
+  Get.back();
 }
 
 class TopControls extends StatelessWidget {

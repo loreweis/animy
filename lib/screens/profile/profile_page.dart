@@ -396,14 +396,7 @@ class _ProfilePageState extends State<ProfilePage>
           UISettingsKeys.detailsBlurAmount.get<double>(20.0);
       final brightness =
           UISettingsKeys.detailsBackdropBrightness.get<double>(1.0);
-      final commentum = Get.isRegistered<CommentumService>()
-          ? Get.find<CommentumService>()
-          : null;
-      final equippedBanner = commentum?.currentUserBanner.value;
-      final effectiveBanner =
-          (equippedBanner != null && equippedBanner.isNotEmpty)
-              ? equippedBanner
-              : user.cover;
+      final effectiveBanner = user.cover;
       final hasBanner =
           effectiveBanner != null && effectiveBanner.trim().isNotEmpty;
       final blurSourceUrl =
