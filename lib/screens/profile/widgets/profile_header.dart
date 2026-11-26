@@ -348,18 +348,7 @@ class DesktopProfileHeader extends StatelessWidget {
                                         ),
                                       ),
                                     ],
-                                    if (commentum != null)
-                                      Obx(() {
-                                        final linked = commentum
-                                            .currentUserLinkedAccounts.value;
-                                        if (linked.isEmpty) {
-                                          return const SizedBox.shrink();
-                                        }
-                                        return LinkedAccountsBadges(
-                                          linkedAccounts: linked,
-                                          fontSize: 10,
-                                        );
-                                      }),
+
                                   ],
                                 ),
                               ),
@@ -906,18 +895,7 @@ class MobileProfileHeaderSliver extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                              if (commentum != null)
-                                Obx(() {
-                                  final linked =
-                                      commentum.currentUserLinkedAccounts.value;
-                                  if (linked.isEmpty) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return LinkedAccountsBadges(
-                                    linkedAccounts: linked,
-                                    fontSize: 10,
-                                  );
-                                }),
+
                             ],
                           ),
                         ],

@@ -322,8 +322,11 @@ class NotificationController extends GetxController {
         ? item!.clientType
         : (item?.type == 'announcement_published' ? 'anymex' : null);
 
-    final success =
-        await _commentumService?.markNotificationRead(notificationId, clientType: clientType);
+    final success = await _commentumService?.markNotificationRead(
+          notificationId,
+          clientType: clientType,
+        ) ??
+        false;
     if (success) {
       if (index != -1) {
         final updated = NotificationItem(
@@ -355,10 +358,10 @@ class NotificationController extends GetxController {
   }
 
   Future<void> markAllAsRead() async {
-    final success =
-        await _commentumService?.markAllNotificationsRead(
-      type: _apiFilterType,
-    );
+    final success = await _commentumService?.markAllNotificationsRead(
+          type: _apiFilterType,
+        ) ??
+        false;
     if (success) {
       notifications.value = notifications
           .map((n) => NotificationItem(
