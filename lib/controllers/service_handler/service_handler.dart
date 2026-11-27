@@ -125,9 +125,15 @@ class ServiceHandler extends GetxController {
   Future<void> login(BuildContext context) => onlineService.login(context);
   Future<void> logout() => onlineService.logout();
   Future<void> autoLogin() => Future.wait([
-        malService.autoLogin(),
-        anilistService.autoLogin(),
-        simklService.autoLogin(),
+        malService
+            .autoLogin()
+            .catchError((e) => Logger.i('MAL autoLogin error: $e')),
+        anilistService
+            .autoLogin()
+            .catchError((e) => Logger.i('AniList autoLogin error: $e')),
+        simklService
+            .autoLogin()
+            .catchError((e) => Logger.i('Simkl autoLogin error: $e')),
       ]);
   @override
   Future<void> refresh() => onlineService.refresh();

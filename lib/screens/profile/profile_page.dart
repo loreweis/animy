@@ -448,6 +448,7 @@ class _ProfilePageState extends State<ProfilePage>
                   0, 0, 0, 1, 0,
                 ]),
                 child: ImageFiltered(
+                  enabled: blurAmount > 0,
                   imageFilter: ImageFilter.blur(
                       sigmaX: blurAmount, sigmaY: blurAmount),
                   child: AnymeXImage(

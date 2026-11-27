@@ -133,7 +133,6 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             manga: info['hasManga'] ?? false,
             novel: info['hasNovel'] ?? false,
             customLists: info['hasCustomLists'] ?? false,
-            stats: info['hasStats'] ?? false,
             settings: SettingsOptions(
               appearance: info['hasAppearance'] ?? false,
               player: info['hasPlayer'] ?? false,

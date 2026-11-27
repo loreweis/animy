@@ -9,7 +9,6 @@ import 'package:anymex/controllers/offline/offline_storage_controller.dart';
 import 'package:anymex/controllers/service_handler/params.dart';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/controllers/services/anilist/anilist_error_handler.dart';
-import 'package:anymex/database/comments/comments_db.dart';
 import 'package:anymex/database/data_keys/keys.dart';
 import 'package:anymex/models/Anilist/anilist_notification.dart';
 import 'package:anymex/models/Anilist/anilist_media_user.dart';
@@ -21,7 +20,6 @@ import 'package:anymex/controllers/services/anilist/anilist_cache.dart';
 import 'package:anymex/controllers/services/anilist/anilist_rate_limiter.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/screens/notifications/notification_controller.dart';
-import 'package:anymex/services/commentum_service.dart';
 import 'package:anymex/utils/logger.dart';
 import 'package:anymex/utils/string_extensions.dart';
 import 'package:anymex/utils/theme_extensions.dart';
@@ -403,7 +401,6 @@ class AnilistAuth extends GetxController {
         unreadAnilistCount.value =
             cached['unreadNotificationCount'] as int? ?? 0;
         isLoggedIn.value = true;
-        CommentsDatabase().login();
         return;
       }
     }
@@ -589,7 +586,6 @@ class AnilistAuth extends GetxController {
           persist: true,
         );
 
-        CommentsDatabase().login();
         if (Get.isRegistered<NotificationController>()) {
           Get.find<NotificationController>().loadAnilistNotifications();
         }

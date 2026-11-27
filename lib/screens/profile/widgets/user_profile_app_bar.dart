@@ -247,13 +247,6 @@ class _UserProfileAppBarState extends State<UserProfileAppBar> {
           fit: StackFit.expand,
           children: [
             if (imageUrl.isNotEmpty)
-              Positioned.fill(
-                child: ProfileBodyOnlyBanner(
-                  imageUrl: imageUrl,
-                  fallbackUrl: avatarUrl,
-                ),
-              ),
-            if (imageUrl.isNotEmpty)
               GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 onTap: () {

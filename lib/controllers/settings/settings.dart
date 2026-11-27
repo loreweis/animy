@@ -547,11 +547,16 @@ class Settings extends GetxController {
     update();
   }
 
-  int get detailsBlurScope => _getUISetting((s) => s.detailsBlurScope);
+  int get detailsBlurScope {
+    final v = _getUISetting((s) => s.detailsBlurScope);
+    return (v < 0 || v > 2) ? 1 : v;
+  }
+
   set detailsBlurScope(int value) {
-    uiSettings.update((s) => s?.detailsBlurScope = value);
-    UISettingsKeys.detailsBlurScope.set(value);
-    fullScreenBlur = value == 1 || value == 3;
+    final safe = (value < 0 || value > 2) ? 1 : value;
+    uiSettings.update((s) => s?.detailsBlurScope = safe);
+    UISettingsKeys.detailsBlurScope.set(safe);
+    fullScreenBlur = safe == 1;
     uiSettings.refresh();
     update();
   }
@@ -618,19 +623,17 @@ class Settings extends GetxController {
                 'Anime',
                 'Manga',
                 'Library',
-                'Stats',
                 if (isDesktop) 'Extensions'
               ]
             : (isDesktop
-                ? ['Home', 'Anime', 'Manga', 'Library', 'Stats', 'Extensions']
-                : ['Home', 'Anime', 'Manga', 'Library', 'Stats']))
+                ? ['Home', 'Anime', 'Manga', 'Library', 'Extensions']
+                : ['Home', 'Anime', 'Manga', 'Library']))
         : (isExtensionsService
             ? [
                 'Home',
                 'Discover',
                 'Library',
                 'History',
-                'Stats',
                 if (isDesktop) 'Extensions'
               ]
             : (isDesktop
@@ -639,17 +642,17 @@ class Settings extends GetxController {
                     'Discover',
                     'Library',
                     'History',
-                    'Stats',
                     'Extensions'
                   ]
-                : ['Home', 'Discover', 'Library', 'History', 'Stats']));
+                : ['Home', 'Discover', 'Library', 'History']));
 
     if (raw.isEmpty) {
       return defaultTabs;
     }
     try {
       final List<dynamic> list = jsonDecode(raw);
-      final strings = list.map((e) => e.toString()).toList();
+      final strings =
+          list.map((e) => e.toString()).where((t) => t != 'Stats').toList();
       if (strings.isNotEmpty) {
         return strings;
       }
@@ -658,7 +661,8 @@ class Settings extends GetxController {
   }
 
   set navigationTabOrder(List<String> order) {
-    KvHelper.set(_currentTabOrderKey, jsonEncode(order));
+    final cleaned = order.where((t) => t != 'Stats').toList();
+    KvHelper.set(_currentTabOrderKey, jsonEncode(cleaned));
     uiSettings.refresh();
     update();
   }

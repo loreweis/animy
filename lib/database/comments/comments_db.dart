@@ -9,7 +9,12 @@ import 'model/comment.dart';
 import 'package:anymex/l10n/l10n_extension.dart';
 
 class CommentsDatabase {
-  final commentumService = Get.find<CommentumService>();
+  CommentumService? get _commentumService =>
+      Get.isRegistered<CommentumService>()
+          ? Get.find<CommentumService>()
+          : null;
+
+  CommentumService get commentumService => Get.find<CommentumService>();
 
   void log(String msg) => {};
 
@@ -478,15 +483,16 @@ class CommentsDatabase {
     }
   }
 
-  bool get isLoggedIn => commentumService.currentUserId != null;
+  bool get isLoggedIn => _commentumService?.currentUserId != null;
 
   Future<Map<String, dynamic>?> getCurrentUserInfo() async {
-    if (!isLoggedIn) return null;
+    final service = _commentumService;
+    if (service == null || service.currentUserId == null) return null;
 
     return {
-      'id': commentumService.currentUserId,
-      'username': commentumService.currentUsername,
-      'avatar_url': commentumService.currentUserAvatar,
+      'id': service.currentUserId,
+      'username': service.currentUsername,
+      'avatar_url': service.currentUserAvatar,
     };
   }
 

@@ -89,7 +89,7 @@ class UISettings {
     this.tintBlur = true,
     this.usePosterForBlur = true,
     this.detailsBlurStyle = 0,
-    this.detailsBlurScope = 3,
+    this.detailsBlurScope = 1,
     this.detailsOledMode = false,
   })  : homePageCards = homePageCards ??
             {
@@ -245,8 +245,11 @@ class UISettings {
           .get<bool>(uiDefaults.usePosterForBlur),
       detailsBlurStyle:
           UISettingsKeys.detailsBlurStyle.get<int>(uiDefaults.detailsBlurStyle),
-      detailsBlurScope:
-          UISettingsKeys.detailsBlurScope.get<int>(uiDefaults.detailsBlurScope),
+      detailsBlurScope: () {
+        final v = UISettingsKeys.detailsBlurScope
+            .get<int>(uiDefaults.detailsBlurScope);
+        return (v < 0 || v > 2) ? 1 : v;
+      }(),
       detailsOledMode: UISettingsKeys.detailsOledMode
           .get<bool>(uiDefaults.detailsOledMode),
     );

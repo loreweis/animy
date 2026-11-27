@@ -98,13 +98,6 @@ class _UserProfileHeaderState extends State<UserProfileHeader> {
                 fit: StackFit.expand,
                 children: [
                   if (imageUrl.isNotEmpty)
-                    Positioned.fill(
-                      child: ProfileBodyOnlyBanner(
-                        imageUrl: imageUrl,
-                        fallbackUrl: user.avatar,
-                      ),
-                    ),
-                  if (imageUrl.isNotEmpty)
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {

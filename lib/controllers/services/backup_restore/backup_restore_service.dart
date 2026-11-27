@@ -6,9 +6,7 @@ import 'dart:typed_data';
 import 'package:anymex/controllers/offline/offline_storage_controller.dart';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/database/isar_models/custom_list.dart';
-import 'package:anymex/database/isar_models/daily_activity.dart';
 import 'package:anymex/database/isar_models/key_value.dart';
-import 'package:anymex/database/isar_models/media_stats.dart';
 import 'package:anymex/database/isar_models/offline_media.dart';
 import 'package:anymex/database/isar_models/chapter.dart';
 import 'package:anymex/database/isar_models/episode.dart';
@@ -159,64 +157,11 @@ class SettingsOptions {
       };
 }
 
-extension DailyActivityJson on DailyActivity {
-  Map<String, dynamic> toJson() => {
-        'date': date.toIso8601String(),
-        'watchTimeMinutes': watchTimeMinutes,
-        'readTimeMinutes': readTimeMinutes,
-        'episodesWatched': episodesWatched,
-        'chaptersRead': chaptersRead,
-        'activeMediaIds': activeMediaIds,
-      };
-
-  static DailyActivity fromJson(Map<String, dynamic> json) {
-    return DailyActivity()
-      ..date =
-          DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now()
-      ..watchTimeMinutes = json['watchTimeMinutes'] as int? ?? 0
-      ..readTimeMinutes = json['readTimeMinutes'] as int? ?? 0
-      ..episodesWatched = json['episodesWatched'] as int? ?? 0
-      ..chaptersRead = json['chaptersRead'] as int? ?? 0
-      ..activeMediaIds =
-          (json['activeMediaIds'] as List?)?.cast<String>() ?? [];
-  }
-}
-
-extension MediaStatsJson on MediaStats {
-  Map<String, dynamic> toJson() => {
-        'mediaId': mediaId,
-        'title': title,
-        'type': type,
-        'poster': poster,
-        'cover': cover,
-        'totalTimeMinutes': totalTimeMinutes,
-        'totalUnitsConsumed': totalUnitsConsumed,
-        'lastInteracted': lastInteracted.toIso8601String(),
-        'interactionCount': interactionCount,
-      };
-
-  static MediaStats fromJson(Map<String, dynamic> json) {
-    return MediaStats()
-      ..mediaId = json['mediaId'] as String? ?? ''
-      ..title = json['title'] as String? ?? ''
-      ..type = json['type'] as String? ?? ''
-      ..poster = json['poster'] as String?
-      ..cover = json['cover'] as String?
-      ..totalTimeMinutes = json['totalTimeMinutes'] as int? ?? 0
-      ..totalUnitsConsumed = json['totalUnitsConsumed'] as int? ?? 0
-      ..lastInteracted =
-          DateTime.tryParse(json['lastInteracted'] as String? ?? '') ??
-              DateTime.now()
-      ..interactionCount = json['interactionCount'] as int? ?? 0;
-  }
-}
-
 class BackupOptions {
   bool anime;
   bool manga;
   bool novel;
   bool customLists;
-  bool stats;
   SettingsOptions settings;
   bool extensionsData;
   bool extensionFiles;
@@ -227,7 +172,6 @@ class BackupOptions {
     this.manga = true,
     this.novel = true,
     this.customLists = true,
-    this.stats = true,
     SettingsOptions? settings,
     this.extensionsData = true,
     this.extensionFiles = true,
@@ -239,7 +183,6 @@ class BackupOptions {
       manga ||
       novel ||
       customLists ||
-      stats ||
       settings.hasAnySelected ||
       extensionsData ||
       extensionFiles ||
@@ -250,7 +193,6 @@ class BackupOptions {
         manga: json['manga'] ?? true,
         novel: json['novel'] ?? true,
         customLists: json['customLists'] ?? true,
-        stats: json['stats'] ?? true,
         settings: json['settings'] != null
             ? SettingsOptions.fromJson(
                 Map<String, dynamic>.from(json['settings']))
@@ -265,7 +207,6 @@ class BackupOptions {
         'manga': manga,
         'novel': novel,
         'customLists': customLists,
-        'stats': stats,
         'settings': settings.toJson(),
         'extensionsData': extensionsData,
         'extensionFiles': extensionFiles,
@@ -278,7 +219,6 @@ class RestoreOptions {
   bool manga;
   bool novel;
   bool customLists;
-  bool stats;
   SettingsOptions settings;
   bool extensionsData;
   bool extensionFiles;
@@ -289,7 +229,6 @@ class RestoreOptions {
     this.manga = true,
     this.novel = true,
     this.customLists = true,
-    this.stats = true,
     SettingsOptions? settings,
     this.extensionsData = true,
     this.extensionFiles = true,
@@ -301,7 +240,6 @@ class RestoreOptions {
       manga ||
       novel ||
       customLists ||
-      stats ||
       settings.hasAnySelected ||
       extensionsData ||
       extensionFiles ||
@@ -312,7 +250,6 @@ class RestoreOptions {
         manga: json['manga'] ?? true,
         novel: json['novel'] ?? true,
         customLists: json['customLists'] ?? true,
-        stats: json['stats'] ?? true,
         settings: json['settings'] != null
             ? SettingsOptions.fromJson(
                 Map<String, dynamic>.from(json['settings']))
@@ -327,7 +264,6 @@ class RestoreOptions {
         'manga': manga,
         'novel': novel,
         'customLists': customLists,
-        'stats': stats,
         'settings': settings.toJson(),
         'extensionsData': extensionsData,
         'extensionFiles': extensionFiles,
@@ -506,22 +442,6 @@ class BackupRestoreService extends GetxController {
             .toList()
         : <Map<String, dynamic>>[];
 
-    final dailyActivities = options.stats
-        ? isar.dailyActivitys
-            .where()
-            .findAllSync()
-            .map((e) => e.toJson())
-            .toList()
-        : <Map<String, dynamic>>[];
-
-    final mediaStats = options.stats
-        ? isar.mediaStats
-            .where()
-            .findAllSync()
-            .map((e) => e.toJson())
-            .toList()
-        : <Map<String, dynamic>>[];
-
     final kvEntries = options.extensionsData
         ? isar.kvEntrys.where().findAllSync().map((e) => {
               'key': e.key,
@@ -553,7 +473,7 @@ class BackupRestoreService extends GetxController {
       'hasDownloadSettings': options.settings.downloads,
       'hasGeneralSettings': options.settings.general,
       'hasAuthTokens': options.settings.authTokens,
-      'hasStats': options.stats,
+      'hasStats': false,
       'hasExtensionsData': options.extensionsData,
       'hasExtensionFiles': options.extensionFiles,
       'hasRuntimeHost': options.runtimeHost,
@@ -574,8 +494,6 @@ class BackupRestoreService extends GetxController {
           ? novelCustomLists.map((e) => e.toJson()).toList()
           : [],
       'settings': settingsList,
-      'dailyActivities': dailyActivities,
-      'mediaStats': mediaStats,
       'kvEntries': kvEntries,
     };
   }
@@ -805,31 +723,6 @@ class BackupRestoreService extends GetxController {
           }
         });
       }
-    }
-
-    final hasStatsInData =
-        data.containsKey('dailyActivities') || data.containsKey('mediaStats');
-    if (options.stats && hasStatsInData) {
-      final dailyList = (data['dailyActivities'] as List?)
-              ?.map((e) => DailyActivityJson.fromJson(
-                  Map<String, dynamic>.from(e as Map)))
-              .toList() ??
-          [];
-
-      final statsList = (data['mediaStats'] as List?)
-              ?.map((e) => MediaStatsJson.fromJson(
-                  Map<String, dynamic>.from(e as Map)))
-              .toList() ??
-          [];
-
-      await isar.writeTxn(() async {
-        if (!merge) {
-          await isar.dailyActivitys.clear();
-          await isar.mediaStats.clear();
-        }
-        await isar.dailyActivitys.putAll(dailyList);
-        await isar.mediaStats.putAll(statsList);
-      });
     }
 
     if (options.extensionsData && data['kvEntries'] != null) {
@@ -1550,12 +1443,6 @@ class BackupRestoreService extends GetxController {
           hasAuthTokens ||
           (data['hasSettings'] == true);
 
-      final dailyList = data['dailyActivities'] as List? ?? [];
-      final mediaStatsList = data['mediaStats'] as List? ?? [];
-      final hasStats = (data['hasStats'] == true) ||
-          dailyList.isNotEmpty ||
-          mediaStatsList.isNotEmpty;
-
       final kvEntries = data['kvEntries'] as List? ?? [];
       final hasExtensionsData =
           (data['hasExtensionsData'] == true) || kvEntries.isNotEmpty;
@@ -1594,7 +1481,7 @@ class BackupRestoreService extends GetxController {
         'hasDownloadSettings': hasDownloadSettings,
         'hasGeneralSettings': hasGeneralSettings,
         'hasAuthTokens': hasAuthTokens,
-        'hasStats': hasStats,
+        'hasStats': false,
         'hasExtensionsData': hasExtensionsData,
         'extensionsDataCount': kvEntries.length,
         'hasExtensionFiles': hasExtensionFilesInArchive,

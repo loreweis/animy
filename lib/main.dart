@@ -11,9 +11,6 @@ import 'package:anymex/controllers/discord/discord_rpc.dart';
 import 'package:anymex/controllers/offline/offline_storage_controller.dart';
 import 'package:anymex/controllers/service_handler/service_handler.dart';
 import 'package:anymex/controllers/track/track_binding_controller.dart';
-import 'package:anymex/controllers/stats/stats_tracker.dart';
-import 'package:anymex/screens/stats/user_stats_page.dart';
-import 'package:anymex/screens/stats/controller/user_stats_controller.dart';
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/services/anilist/anilist_data.dart';
 import 'package:anymex/controllers/services/mal/mal_service.dart';
@@ -30,7 +27,6 @@ import 'package:anymex/database/kv_helper.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:anymex/firebase_options.dart';
 import 'package:anymex/screens/anime/home_page.dart';
-import 'package:anymex/screens/anime/widgets/comments/controller/comment_preloader.dart';
 import 'package:anymex/screens/extensions/ExtensionScreen.dart';
 import 'package:anymex/screens/home_page.dart';
 import 'package:anymex/screens/library/my_library.dart';
@@ -43,10 +39,6 @@ import 'package:anymex/widgets/common/lazy_indexed_stack.dart';
 import 'package:anymex/widgets/common/media_mode_selector.dart';
 import 'package:anymex/widgets/common/home_continue_button.dart';
 import 'package:anymex/controllers/media_mode_controller.dart';
-import 'package:anymex/services/fcm_service.dart'
-    hide firebaseMessagingBackgroundHandler;
-import 'package:anymex/services/commentum_service.dart';
-import 'package:anymex/controllers/watchium/watchium_service.dart';
 import 'package:anymex/utils/logger.dart';
 import 'package:anymex/utils/notification.dart';
 import 'package:anymex/services/anilist_notification_service.dart';
@@ -66,7 +58,6 @@ import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/non_widgets/settings_sheet.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:app_links/app_links.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -88,7 +79,6 @@ import 'package:anymex/l10n/locale_controller.dart';
 late Isar isar;
 final appLinks = AppLinks();
 
-FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 class MyHttpoverrides extends HttpOverrides {
   @override
@@ -326,7 +316,6 @@ void _initializeGetxController() async {
     Get.put(NotificationService(), permanent: true);
     Get.put(AnilistNotificationService(), permanent: true);
     Get.put(NotificationController(), permanent: true);
-    Get.put(StatsTracker());
     Get.lazyPut(() => CacheController());
     Get.lazyPut(() => MediaModeController());
     Get.lazyPut(() => DownloadSearchController());
@@ -589,8 +578,6 @@ class _FilterScreenState extends State<FilterScreen> {
         return const MyLibrary();
       case 'History':
         return const AnymeXHistoryPage();
-      case 'Stats':
-        return const UserStatsPage();
       case 'Anime':
         return const AnimeHomePage(type: ItemType.anime);
       case 'Manga':
@@ -636,17 +623,6 @@ class _FilterScreenState extends State<FilterScreen> {
           showPlayButton: true,
           isLibraryOrHistory: true,
         );
-      } else if (tabKey == 'Stats') {
-        final statsController = Get.isRegistered<UserStatsController>()
-            ? Get.find<UserStatsController>()
-            : Get.put(UserStatsController());
-        subWidget = Obx(() => MediaModeSelector(
-              isVertical: isDesktop,
-              customOptions: const ['All', 'Anime', 'Manga', 'Novel'],
-              selectedOption: statsController.activeFilter.value,
-              onOptionSelected: (val) =>
-                  statsController.activeFilter.value = val,
-            ));
       }
     }
 
@@ -721,14 +697,6 @@ class _FilterScreenState extends State<FilterScreen> {
           selectedIcon: Icons.extension_rounded,
           onTap: onTap,
           label: context.l10n.navExtensions,
-          subWidget: subWidget,
-        );
-      case 'Stats':
-        return NavItem(
-          unselectedIcon: IconlyLight.chart,
-          selectedIcon: IconlyBold.chart,
-          onTap: onTap,
-          label: context.l10n.navStats,
           subWidget: subWidget,
         );
       default:

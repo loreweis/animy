@@ -39,6 +39,9 @@ class _WatchiumOverlays extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<WatchiumService>()) {
+      return const SizedBox.shrink();
+    }
     return Obx(() {
       try {
         final watchium = Get.find<WatchiumService>();

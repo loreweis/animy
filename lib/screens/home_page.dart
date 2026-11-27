@@ -172,7 +172,13 @@ class _HomePageState extends State<HomePage> {
     _workers.add(ever(serviceHandler.serviceType, (_) {
       if (mounted) setState(() {});
     }));
-    _workers.add(ever(serviceHandler.isLoggedIn, (_) {
+    _workers.add(ever(serviceHandler.anilistService.isLoggedIn, (_) {
+      if (mounted) setState(() {});
+    }));
+    _workers.add(ever(serviceHandler.malService.isLoggedIn, (_) {
+      if (mounted) setState(() {});
+    }));
+    _workers.add(ever(serviceHandler.simklService.isLoggedIn, (_) {
       if (mounted) setState(() {});
     }));
     WidgetsBinding.instance.addPostFrameCallback((_) {

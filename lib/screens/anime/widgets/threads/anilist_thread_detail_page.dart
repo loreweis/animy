@@ -511,6 +511,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
           0,
         ]),
         child: ImageFiltered(
+          enabled: blurAmount > 0,
           imageFilter: ImageFilter.blur(
             sigmaX: blurAmount,
             sigmaY: blurAmount,
@@ -523,7 +524,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
             width: double.infinity,
             height: height ?? double.infinity,
             color: blurColor,
-            memCacheWidth: 80,
+            memCacheWidth: blurAmount > 2 ? 80 : null,
           ),
         ),
       );

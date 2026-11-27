@@ -28,9 +28,12 @@ _BakedRaster _processLegacyFrostedBackdrop((Uint8List, double, double) task) {
     interpolation: img.Interpolation.linear,
   );
 
-  final blurRadius =
-      (blurAmount * (targetShortSide / 400.0)).round().clamp(1, 35);
-  var blurred = img.gaussianBlur(scaled, radius: blurRadius);
+  var blurred = blurAmount <= 0.01
+      ? scaled
+      : img.gaussianBlur(
+          scaled,
+          radius: (blurAmount * (targetShortSide / 400.0)).round().clamp(1, 35),
+        );
 
   if (vibrancy != 1.0) {
     blurred = img.adjustColor(blurred, saturation: vibrancy);
@@ -133,9 +136,10 @@ class BakedBlurImage extends StatefulWidget {
         return await _inflateNativeImage(raster);
       }
 
+      final isZeroBlur = blurAmount <= 0.01;
       final codec = await ui.instantiateImageCodec(
         rawBytes,
-        targetWidth: 160,
+        targetWidth: isZeroBlur ? 900 : 160,
       );
       final frame = await codec.getNextFrame();
       final downscaled = frame.image;
@@ -146,12 +150,14 @@ class BakedBlurImage extends StatefulWidget {
       final canvas = Canvas(recorder);
 
       final paint = Paint()
-        ..imageFilter = ui.ImageFilter.blur(
-          sigmaX: (blurAmount * 0.4).clamp(1.5, 25.0),
-          sigmaY: (blurAmount * 0.4).clamp(1.5, 25.0),
+        ..filterQuality = isZeroBlur ? FilterQuality.medium : FilterQuality.low;
+      if (!isZeroBlur) {
+        paint.imageFilter = ui.ImageFilter.blur(
+          sigmaX: (blurAmount * 0.4).clamp(0.5, 25.0),
+          sigmaY: (blurAmount * 0.4).clamp(0.5, 25.0),
           tileMode: TileMode.clamp,
-        )
-        ..filterQuality = FilterQuality.low;
+        );
+      }
 
       if (saturation != 1.0) {
         final s = saturation;

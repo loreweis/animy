@@ -246,7 +246,6 @@ class _RestorePreviewSheetState extends State<RestorePreviewSheet> {
       manga: widget.info['hasManga'] ?? false,
       novel: widget.info['hasNovel'] ?? false,
       customLists: widget.info['hasCustomLists'] ?? false,
-      stats: widget.info['hasStats'] ?? false,
       settings: SettingsOptions(
         appearance: widget.info['hasAppearance'] ?? false,
         player: widget.info['hasPlayer'] ?? false,
@@ -595,7 +594,6 @@ class _RestorePreviewSheetState extends State<RestorePreviewSheet> {
     final hasManga = widget.info['hasManga'] ?? false;
     final hasNovel = widget.info['hasNovel'] ?? false;
     final hasCustomLists = widget.info['hasCustomLists'] ?? false;
-    final hasStats = widget.info['hasStats'] ?? false;
     final hasAppearance = widget.info['hasAppearance'] ?? false;
     final hasPlayer = widget.info['hasPlayer'] ?? false;
     final hasReader = widget.info['hasReader'] ?? false;
@@ -608,7 +606,7 @@ class _RestorePreviewSheetState extends State<RestorePreviewSheet> {
     final hasRuntimeHost = widget.info['hasRuntimeHost'] ?? false;
 
     final hasAnyMedia =
-        hasAnime || hasManga || hasNovel || hasCustomLists || hasStats;
+        hasAnime || hasManga || hasNovel || hasCustomLists;
     final hasAnySettings = hasAppearance ||
         hasPlayer ||
         hasReader ||
@@ -670,14 +668,6 @@ class _RestorePreviewSheetState extends State<RestorePreviewSheet> {
                     value: _options.customLists,
                     onChanged: (v) =>
                         setState(() => _options.customLists = v),
-                  ),
-                if (hasStats)
-                  AnymeXTile.checkbox(
-                    icon: Icons.insights_rounded,
-                    title: context.l10n.historyStatistics,
-                    subtitle: context.l10n.dailyActivityAndWatchReadProgress,
-                    value: _options.stats,
-                    onChanged: (v) => setState(() => _options.stats = v),
                   ),
               ],
             ),
@@ -1007,7 +997,6 @@ class _ExportBackupSheetState extends State<ExportBackupSheet> {
       _options.manga = select;
       _options.novel = select;
       _options.customLists = select;
-      _options.stats = select;
       _options.settings.appearance = select;
       _options.settings.player = select;
       _options.settings.reader = select;
@@ -1162,13 +1151,6 @@ class _ExportBackupSheetState extends State<ExportBackupSheet> {
                         value: _options.customLists,
                         onChanged: (v) =>
                             setState(() => _options.customLists = v),
-                      ),
-                      AnymeXTile.checkbox(
-                        icon: Icons.insights_rounded,
-                        title: context.l10n.historyStatistics,
-                        subtitle: context.l10n.dailyActivitiesWatchAndReadMetrics,
-                        value: _options.stats,
-                        onChanged: (v) => setState(() => _options.stats = v),
                       ),
                     ],
                   ),

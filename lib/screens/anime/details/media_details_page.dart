@@ -479,6 +479,7 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
                             0,
                           ]),
                           child: ImageFiltered(
+                            enabled: blurAmount > 0,
                             imageFilter: ImageFilter.blur(
                                 sigmaX: blurAmount, sigmaY: blurAmount),
                             child: AnymeXImage(
@@ -489,7 +490,7 @@ class _MediaDetailsPageState extends State<MediaDetailsPage>
                               width: double.infinity,
                               height: height ?? double.infinity,
                               color: blurColor,
-                              memCacheWidth: 80,
+                              memCacheWidth: blurAmount > 2 ? 80 : null,
                             ),
                           ),
                         ),

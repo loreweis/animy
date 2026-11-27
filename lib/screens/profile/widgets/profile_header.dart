@@ -112,13 +112,6 @@ class DesktopProfileHeader extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (imageUrl.isNotEmpty)
-                    Positioned.fill(
-                      child: ProfileBodyOnlyBanner(
-                        imageUrl: imageUrl,
-                        fallbackUrl: user.avatar,
-                      ),
-                    ),
-                  if (imageUrl.isNotEmpty)
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {
@@ -715,13 +708,6 @@ class MobileProfileHeaderSliver extends StatelessWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl.isNotEmpty)
-              Positioned.fill(
-                child: ProfileBodyOnlyBanner(
-                  imageUrl: imageUrl,
-                  fallbackUrl: avatarUrl,
-                ),
-              ),
             if (imageUrl.isNotEmpty)
               GestureDetector(
                 behavior: HitTestBehavior.translucent,

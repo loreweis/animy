@@ -11,7 +11,6 @@ import 'package:anymex/main.dart';
 import 'package:anymex/models/Media/media.dart';
 import 'package:anymex/utils/logger.dart';
 import 'package:anymex_extension_runtime_bridge/Models/Source.dart';
-import 'package:anymex/controllers/stats/stats_tracker.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
@@ -839,7 +838,6 @@ class OfflineStorageController extends GetxController {
         }
       }
 
-      bool isNewEpisode = false;
       await isar.writeTxn(() async {
         existingAnime.watchedEpisodes ??= [];
         episode.source = sourceController.activeSource.value?.name;
@@ -857,23 +855,12 @@ class OfflineStorageController extends GetxController {
         } else {
           existingAnime.watchedEpisodes!.add(episode);
           Logger.i('Added new episode: ${episode.title} for anime ID: $animeId');
-          isNewEpisode = true;
         }
 
         existingAnime.currentEpisode = episode;
 
         await isar.offlineMedias.put(existingAnime);
       });
-      if (isNewEpisode) {
-        Get.find<StatsTracker>().logWatch(
-          animeId,
-          existingAnime.name ?? 'Unknown',
-          0,
-          episodeCompleted: true,
-          poster: existingAnime.poster,
-          cover: existingAnime.cover,
-        );
-      }
       update();
 
       if (syncToCloud) {
@@ -926,7 +913,6 @@ class OfflineStorageController extends GetxController {
         }
       }
 
-      bool isNewChapter = false;
       await isar.writeTxn(() async {
         existingManga!.readChapters ??= [];
         chapter.sourceName =
@@ -944,26 +930,12 @@ class OfflineStorageController extends GetxController {
         } else {
           existingManga.readChapters!.add(chapter);
           Logger.i('Added new chapter: ${chapter.title} for manga ID: $mangaId');
-          isNewChapter = true;
         }
 
         existingManga.currentChapter = chapter;
 
         await isar.offlineMedias.put(existingManga);
       });
-      if (isNewChapter) {
-        Get.find<StatsTracker>().logRead(
-          mangaId,
-          existingManga.name ?? 'Unknown',
-          0,
-          chaptersCompleted: 1,
-          type: existingManga.mediaTypeIndex == ItemType.novel.index
-              ? 'novel'
-              : 'manga',
-          poster: existingManga.poster,
-          cover: existingManga.cover,
-        );
-      }
       update();
 
       if (syncToCloud) {

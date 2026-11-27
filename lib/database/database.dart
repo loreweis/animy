@@ -4,8 +4,6 @@ import 'dart:io';
 import 'package:anymex/database/isar_models/custom_list.dart';
 import 'package:anymex/database/isar_models/key_value.dart';
 import 'package:anymex/database/isar_models/offline_media.dart';
-import 'package:anymex/database/isar_models/daily_activity.dart';
-import 'package:anymex/database/isar_models/media_stats.dart';
 import 'package:anymex/services/crash_detector.dart';
 import 'package:anymex/utils/logger.dart';
 import 'package:anymex_extension_runtime_bridge/anymex_extension_runtime_bridge.dart'
@@ -30,8 +28,6 @@ class Database {
         KeyValueSchema,
         OfflineMediaSchema,
         CustomListSchema,
-        DailyActivitySchema,
-        MediaStatsSchema
       ],
       directory: dir.path,
       name: 'AnymeX',

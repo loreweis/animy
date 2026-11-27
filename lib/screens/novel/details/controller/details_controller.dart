@@ -115,7 +115,9 @@ class NovelDetailsController extends GetxController {
       chapters.value = fetched.altMediaContent ?? [];
       _cachedSourceMedia = fetched;
       media.value = fetched;
-      CommentPreloader.to.preloadComments(media.value);
+      if (Get.isRegistered<CommentPreloader>()) {
+        CommentPreloader.to.preloadComments(media.value);
+      }
     } catch (e) {
       errorSnackBar(Get.context!.l10n.failedToFetchChapters);
     } finally {
@@ -191,7 +193,9 @@ class NovelDetailsController extends GetxController {
     if (!hasInitialSource) return;
     if (_cachedSourceMedia != null && chapters.isNotEmpty) {
       media.value = _cachedSourceMedia!;
-      CommentPreloader.to.preloadComments(media.value);
+      if (Get.isRegistered<CommentPreloader>()) {
+        CommentPreloader.to.preloadComments(media.value);
+      }
       return;
     }
     isSyncing.value = true;
@@ -199,7 +203,9 @@ class NovelDetailsController extends GetxController {
       await _fetchChaptersOnly(url: initialMedia.id);
       if (_cachedSourceMedia != null) {
         media.value = _cachedSourceMedia!;
-        CommentPreloader.to.preloadComments(media.value);
+        if (Get.isRegistered<CommentPreloader>()) {
+          CommentPreloader.to.preloadComments(media.value);
+        }
       }
     } catch (e) {
       errorSnackBar(Get.context!.l10n.syncFailed);

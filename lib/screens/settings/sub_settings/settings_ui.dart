@@ -15,7 +15,6 @@ import 'package:anymex/widgets/common/anymex_scaffold.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:get/get.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:iconsax/iconsax.dart';
@@ -276,7 +275,6 @@ class _SettingsUiState extends State<SettingsUi> {
             'Manga',
             'Novel',
             'Library',
-            'Stats',
             'Extensions'
           ]
         : [
@@ -284,7 +282,6 @@ class _SettingsUiState extends State<SettingsUi> {
             'Discover',
             'Library',
             'History',
-            'Stats',
             'Extensions'
           ];
     final visibleTabs = settings.navigationTabOrder
@@ -302,7 +299,6 @@ class _SettingsUiState extends State<SettingsUi> {
       'Novel': Icons.auto_stories_rounded,
       'Library': Icons.video_library_rounded,
       'History': Iconsax.clock,
-      'Stats': IconlyBold.chart,
       'Extensions': Icons.extension_rounded,
     };
 
