@@ -61,6 +61,26 @@ class ServiceHandler extends GetxController {
   final malService = Get.find<MalService>();
   final simklService = Get.find<SimklService>();
   final extensionService = Get.find<SourceController>();
+  final isHomeLoading = true.obs;
+  final isAutoLoggingIn = false.obs;
+
+  bool get hasSavedTokenForActiveService {
+    switch (serviceType.value) {
+      case ServicesType.anilist:
+        final token = AuthKeys.authToken.get<String?>();
+        return token != null && token.isNotEmpty;
+      case ServicesType.mal:
+        final token = AuthKeys.malAuthToken.get<String?>();
+        final refresh = AuthKeys.malRefreshToken.get<String?>();
+        return (token != null && token.isNotEmpty) ||
+            (refresh != null && refresh.isNotEmpty);
+      case ServicesType.simkl:
+        final token = AuthKeys.simklAuthToken.get<String?>();
+        return token != null && token.isNotEmpty;
+      case ServicesType.extensions:
+        return false;
+    }
+  }
 
   BaseService get service {
     switch (serviceType.value) {
@@ -124,7 +144,10 @@ class ServiceHandler extends GetxController {
   // Online Services Method
   Future<void> login(BuildContext context) => onlineService.login(context);
   Future<void> logout() => onlineService.logout();
-  Future<void> autoLogin() => Future.wait([
+  Future<void> autoLogin() async {
+    isAutoLoggingIn.value = hasSavedTokenForActiveService;
+    try {
+      await Future.wait([
         malService
             .autoLogin()
             .catchError((e) => Logger.i('MAL autoLogin error: $e')),
@@ -135,6 +158,10 @@ class ServiceHandler extends GetxController {
             .autoLogin()
             .catchError((e) => Logger.i('Simkl autoLogin error: $e')),
       ]);
+    } finally {
+      isAutoLoggingIn.value = false;
+    }
+  }
   @override
   Future<void> refresh() => onlineService.refresh();
 
@@ -173,6 +200,8 @@ class ServiceHandler extends GetxController {
     super.onInit();
     serviceType.value =
         ServicesType.values[ServiceKeys.serviceType.get<int>(0)];
+    isAutoLoggingIn.value = hasSavedTokenForActiveService;
+    isHomeLoading.value = !service.isDataLoaded;
   }
 
   @override
@@ -182,7 +211,16 @@ class ServiceHandler extends GetxController {
     autoLogin();
   }
 
-  Future<void> fetchHomePage() => service.fetchHomePage();
+  Future<void> fetchHomePage() async {
+    if (!service.isDataLoaded) {
+      isHomeLoading.value = true;
+    }
+    try {
+      await service.fetchHomePage();
+    } finally {
+      isHomeLoading.value = false;
+    }
+  }
 
   Future<Media> fetchDetails(FetchDetailsParams params) async {
     try {

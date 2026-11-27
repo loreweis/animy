@@ -8,7 +8,6 @@ import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
 import 'package:anymex/widgets/common/policy_sheet.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -168,9 +167,11 @@ class _AboutPageState extends State<AboutPage> {
                                     ),
                                   ],
                                 ),
-                                child: const AnymeXAnimatedLogo(
-                                  size: 70,
-                                  autoPlay: true,
+                                child: Image.asset(
+                                  'assets/images/logo_transparent.webp',
+                                  width: 70,
+                                  height: 70,
+                                  fit: BoxFit.contain,
                                 )),
                           ),
                         ),

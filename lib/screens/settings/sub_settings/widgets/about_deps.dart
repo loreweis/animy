@@ -2,7 +2,6 @@ import 'package:anymex/l10n/l10n_extension.dart';
 import 'package:anymex/screens/settings/sub_settings/settings_about.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/common/custom_tiles.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -101,12 +100,14 @@ class ProfileSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 80,
             height: 80,
-            child: AnymeXAnimatedLogo(
-              size: 80,
-              autoPlay: true,
+            child: Image.asset(
+              'assets/images/logo_transparent.webp',
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(height: 12),
@@ -140,10 +141,12 @@ class ProfileSection extends StatelessWidget {
             onTap: () async {
               await launchUrlHelper('https://github.com/');
             },
-            leading: const CircleAvatar(
-              child: AnymeXAnimatedLogo(
-                size: 40,
-                autoPlay: true,
+            leading: CircleAvatar(
+              child: Image.asset(
+                'assets/images/logo_transparent.webp',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
               ),
             ),
             title: context.l10n.developer,

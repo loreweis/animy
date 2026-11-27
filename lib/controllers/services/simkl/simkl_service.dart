@@ -1081,8 +1081,7 @@ class SimklService extends GetxController
               mangaStats: MangaStats(
                   mangaCount:
                       stats['tv']?['completed']?['count']?.toString())));
-      fetchUserMovieList();
-      fetchUserSeriesList();
+      await Future.wait([fetchUserMovieList(), fetchUserSeriesList()]);
     } else {
       snackBar(Get.context!.l10n.userInfoFetchingFailed);
     }

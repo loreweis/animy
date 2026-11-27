@@ -52,7 +52,6 @@ import 'package:anymex/widgets/common/navbar.dart';
 import 'package:anymex_extension_runtime_bridge/Models/Source.dart';
 import 'package:anymex_extension_runtime_bridge/anymex_extension_runtime_bridge.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_splash_screen.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_titlebar.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/non_widgets/settings_sheet.dart';
@@ -333,7 +332,6 @@ class MainApp extends StatefulWidget {
 }
 
 class _MainAppState extends State<MainApp> {
-  bool _showMainApp = false;
   bool _isFullScreen = false;
 
   late FocusNode focusNode;
@@ -399,13 +397,6 @@ class _MainAppState extends State<MainApp> {
 
 
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _showMainApp = true;
-        });
-      }
-    });
   }
 
   @override
@@ -434,8 +425,7 @@ class _MainAppState extends State<MainApp> {
           theme: themeCtrl.lightTheme,
           darkTheme: themeCtrl.darkTheme,
           themeMode: themeCtrl.themeMode,
-          home:
-              _showMainApp ? const FilterScreen() : const AnymeXSplashScreen(),
+          home: const FilterScreen(),
           builder: (context, child) {
             if (child == null) return const SizedBox.shrink();
             final isDesktop = Platform.isWindows;

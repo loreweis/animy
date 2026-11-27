@@ -10,7 +10,6 @@ import 'package:anymex_extension_runtime_bridge/anymex_extension_runtime_bridge.
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/services/commentum_service.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_decorated_avatar.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_textspan.dart';
@@ -77,19 +76,6 @@ class Header extends StatelessWidget {
                       ),
                       AnymeXText(
                         context.l10n.yourWatchReadHistory,
-                        autoResize: true,
-                        maxLines: 1,
-                        color: context.colors.primary,
-                        variant: TextVariant.semiBold,
-                      ),
-                    ] else if (type == PageType.stats) ...[
-                      AnymeXText(
-                        context.l10n.stats,
-                        autoResize: true,
-                        maxLines: 1,
-                      ),
-                      AnymeXText(
-                        context.l10n.yourWatchReadStatistics,
                         autoResize: true,
                         maxLines: 1,
                         color: context.colors.primary,
@@ -303,22 +289,10 @@ class Header extends StatelessWidget {
           androidBuilder: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                AnymexOnTap(
-                  onTap: () => SettingsSheet().showServiceSelector(context),
-                  child: SizedBox(
-                      width: 50,
-                      height: 70,
-                      child: AnymeXAnimatedLogo(
-                        size: 50,
-                        autoPlay: true,
-                        color: context.colors.inverseSurface,
-                      )),
-                ),
-                const Spacer(),
-                _profileIcon(context, profileData)
+                _profileIcon(context, profileData),
               ],
             ),
           ),
@@ -361,17 +335,7 @@ class Header extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 20),
-                AnymexOnTap(
-                  onTap: () => SettingsSheet().showServiceSelector(context),
-                  child: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.transparent,
-                      child: AnymeXAnimatedLogo(
-                        size: 56,
-                        autoPlay: true,
-                        color: context.colors.inverseSurface,
-                      )),
-                ),
+                _profileIcon(context, profileData),
               ],
             ),
           ),

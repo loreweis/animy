@@ -8,12 +8,10 @@ import 'package:anymex/controllers/source/source_controller.dart';
 import 'package:anymex/controllers/ui/greeting.dart';
 import 'package:anymex/database/data_keys/keys.dart';
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
-import 'package:anymex/services/commentum_service.dart';
 import 'package:anymex/screens/profile/profile_page.dart';
 import 'package:anymex/screens/library/controller/library_controller.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/theme_extensions.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_badge.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_bottomsheet.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
@@ -28,7 +26,7 @@ import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:iconsax/iconsax.dart';
 
-enum PageType { manga, anime, home, novel, library, extensions, history, stats }
+enum PageType { manga, anime, home, novel, library, extensions, history }
 
 class Header extends StatelessWidget {
   final Widget? leading;
@@ -276,10 +274,9 @@ Header _buildHeaderFromType({
     case PageType.home:
       return Header(
         key: key,
-        leading: const HeaderLogoButton(),
+        leading: const HeaderProfileAvatar(),
         titleWidget: const HeaderHomeTitle(),
         subtitleWidget: const HeaderHomeSubtitle(),
-        actions: const [HeaderProfileAvatar()],
         bottom: bottom,
       );
     case PageType.anime:
@@ -362,14 +359,6 @@ Header _buildHeaderFromType({
         ],
         bottom: bottom,
       );
-    case PageType.stats:
-      return Header(
-        key: key,
-        leading: const HeaderProfileAvatar(),
-        title: Get.context!.l10n.stats,
-        subtitle: Get.context!.l10n.yourWatchReadStatistics,
-        bottom: bottom,
-      );
     case PageType.extensions:
       return Header(
         key: key,
@@ -404,12 +393,6 @@ class HeaderProfileAvatar extends StatelessWidget {
           try {
             if (Get.isRegistered<AnilistAuth>()) {
               unread += Get.find<AnilistAuth>().unreadAnilistCount.value;
-            }
-          } catch (_) {}
-          try {
-            if (Get.isRegistered<CommentumService>()) {
-              unread +=
-                  Get.find<CommentumService>().unreadNotificationCount.value;
             }
           } catch (_) {}
           final avatar = CircleAvatar(
@@ -451,33 +434,6 @@ class HeaderProfileAvatar extends StatelessWidget {
           }
           return avatar;
         }),
-      ),
-    );
-  }
-}
-
-class HeaderLogoButton extends StatelessWidget {
-  final double size;
-
-  const HeaderLogoButton({super.key, this.size = 36});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnymexOnTap(
-      onTap: () => SettingsSheet().showServiceSelector(context),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: context.colors.secondaryContainer.opaque(0.5),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: AnymeXAnimatedLogo(
-            size: size,
-            color: context.colors.primary,
-          ),
-        ),
       ),
     );
   }

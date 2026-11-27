@@ -3,14 +3,12 @@ import 'package:anymex/constants/contants.dart';
 import 'package:anymex/controllers/settings/settings.dart';
 import 'package:anymex/controllers/theme.dart';
 import 'package:anymex/database/data_keys/keys.dart';
-import 'package:anymex/models/logo_animation_type.dart';
 import 'package:anymex/utils/liquid.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_tile.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_dialog.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_section_builder.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_tile_builder.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
-import 'package:anymex/widgets/dialogs/logo_animation_preview_dialog.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/helper/tv_wrapper.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +33,6 @@ class _SettingsThemeState extends State<SettingsTheme> {
   late bool isOled;
   late int selectedVariantIndex;
   final settings = Get.find<Settings>();
-  late LogoAnimationType selectedLogoAnimation;
 
   final List<Map<String, dynamic>> themeModes = [
     {"label": "Light", "color": Colors.white},
@@ -49,7 +46,6 @@ class _SettingsThemeState extends State<SettingsTheme> {
   void initState() {
     super.initState();
     _initializeDbVars();
-    _initializeLogoAnimation();
   }
 
   void handleThemeMode(String theme) {
@@ -96,29 +92,6 @@ class _SettingsThemeState extends State<SettingsTheme> {
             ? "Light"
             : "Dark";
     selectedVariantIndex = provider.selectedVariantIndex;
-  }
-
-  void _initializeLogoAnimation() {
-    final animationIndex = ThemeKeys.logoAnimationType.get<int>(0);
-    selectedLogoAnimation = LogoAnimationType.fromIndex(animationIndex);
-  }
-
-  void _showLogoAnimationDialog() {
-    AnymeXDialog(
-      title: context.l10n.logoAnimation,
-      showCancelButton: false,
-      confirmText: context.l10n.close,
-      onConfirm: () {},
-      contentWidget: LogoAnimationPreviewDialog(
-        initialAnimation: selectedLogoAnimation,
-        onConfirm: (LogoAnimationType animationType) {
-          setState(() {
-            selectedLogoAnimation = animationType;
-          });
-          ThemeKeys.logoAnimationType.set(animationType.index);
-        },
-      ),
-    ).show(context);
   }
 
   void handleDefaultSwitch(bool value) {
@@ -194,8 +167,6 @@ class _SettingsThemeState extends State<SettingsTheme> {
                 _buildThemeTab(),
                 const SizedBox(height: 20),
                 _buildWallpaperTab(),
-                const SizedBox(height: 20),
-                _buildExtrasTab(),
               ],
             ),
           ),
@@ -345,20 +316,6 @@ class _SettingsThemeState extends State<SettingsTheme> {
         ],
       );
     });
-  }
-
-  Widget _buildExtrasTab() {
-    return AnymeXSectionBuilder(
-      title: context.l10n.miscellaneous,
-      children: [
-        AnymeXTile(
-          icon: HugeIcons.strokeRoundedPlayCircle,
-          title: context.l10n.logoAnimation,
-          subtitle: context.l10n.customizeYourLogoAnimationStyle,
-          onTap: _showLogoAnimationDialog,
-        ),
-      ],
-    );
   }
 
   Widget _buildPalettePreview(ColorScheme cs, bool isModern) {

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -180,10 +179,12 @@ class _TitleBarWidget extends StatelessWidget {
                 color: defaultColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: AnymeXAnimatedLogo(
-                size: 18,
-                autoPlay: true,
+              child: Image.asset(
+                'assets/images/logo_transparent.webp',
+                width: 18,
+                height: 18,
                 color: defaultColor,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: 10),

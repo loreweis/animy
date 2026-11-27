@@ -98,13 +98,6 @@ abstract final class SettingsRegistry {
           searchTags: ['hex code', 'color picker'],
         ),
         SettingItem(
-          title: 'Logo Animation',
-          category: 'Theme',
-          section: 'Extras',
-          icon: HugeIcons.strokeRoundedPlayCircle,
-          searchTags: ['splash', 'home logo'],
-        ),
-        SettingItem(
           title: 'Reset to Default Picture',
           category: 'Theme',
           section: 'Extras',

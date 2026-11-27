@@ -9,7 +9,6 @@ import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/logger.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_tile.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/widgets/non_widgets/settings_sheet.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
@@ -166,8 +165,11 @@ void showWelcomeDialogg(BuildContext context) {
                             color: context.colors.primary.withOpacity(0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: const AnymeXAnimatedLogo(
-                            size: 40,
+                          child: Image.asset(
+                            'assets/images/logo_transparent.webp',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(width: 14),

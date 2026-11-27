@@ -18,7 +18,6 @@ String settingsLabel(AppLocalizations l10n, String english) => switch (english) 
     'Palette' => l10n.palette,
     'Oled Mode' => l10n.oledMode,
     'Custom Theme' => l10n.customTheme,
-    'Logo Animation' => l10n.logoAnimation,
     'Reset to Default Picture' => l10n.resetToDefaultPicture,
     'Fonts & Typography' => l10n.fontsTypography,
     'Choose typography, custom fonts & global text scale' => l10n.chooseTypographyCustomFontsGlobalText,

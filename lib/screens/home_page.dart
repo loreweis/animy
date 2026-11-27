@@ -22,6 +22,7 @@ import 'package:anymex_extension_runtime_bridge/anymex_extension_runtime_bridge.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -135,6 +136,179 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Widget _buildHomeSkeleton({
+    required BuildContext context,
+    required Settings settings,
+    required bool showStories,
+    required bool showQuickButtons,
+    required int carouselCount,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+    final baseColor =
+        theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.09);
+    final highlightColor =
+        theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.16 : 0.18);
+    final config = settings.customCardStyle;
+    final isLandscape = config.isLandscape;
+    final cardWidth = isLandscape
+        ? (isDesktop ? 230.0 : 185.0)
+        : (isDesktop ? 150.0 : 112.0);
+    final cardHeight = isLandscape
+        ? (cardWidth / config.ratioValue).clamp(96.0, 145.0)
+        : (cardWidth / config.ratioValue).clamp(145.0, 210.0);
+    final buttonHeight = isDesktop ? 90.0 : 70.0;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showStories)
+            Padding(
+              padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 4, 16, 14),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Row(
+                  children: List.generate(
+                    6,
+                    (_) => Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 66,
+                            height: 66,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 48,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (showQuickButtons)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: buttonHeight,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Container(
+                          height: buttonHeight,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    height: buttonHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
+            ),
+          ...List.generate(
+            carouselCount,
+            (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, bottom: 12),
+                    child: Container(
+                      width: 150,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: cardHeight + 34,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(left: 16),
+                      itemCount: isLandscape ? 3 : 4,
+                      itemBuilder: (_, __) => Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: SizedBox(
+                          width: cardWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: cardWidth,
+                                height: cardHeight,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: cardWidth * 0.8,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildHomeWidgets({
     required BuildContext context,
     required ServiceHandler serviceHandler,
@@ -179,6 +353,12 @@ class _HomePageState extends State<HomePage> {
       if (mounted) setState(() {});
     }));
     _workers.add(ever(serviceHandler.simklService.isLoggedIn, (_) {
+      if (mounted) setState(() {});
+    }));
+    _workers.add(ever(serviceHandler.isHomeLoading, (_) {
+      if (mounted) setState(() {});
+    }));
+    _workers.add(ever(serviceHandler.isAutoLoggingIn, (_) {
       if (mounted) setState(() {});
     }));
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -234,9 +414,21 @@ class _HomePageState extends State<HomePage> {
         getResponsiveValue(context, desktopValue: false, mobileValue: true);
     final TextAlign textAlignment =
         isMobile ? TextAlign.center : TextAlign.left;
+    final bool expectLoggedIn = serviceHandler.isLoggedIn.value ||
+        (serviceHandler.isAutoLoggingIn.value &&
+            serviceHandler.hasSavedTokenForActiveService);
     final bool showLegacyHero =
         serviceHandler.serviceType.value != ServicesType.anilist ||
-            !serviceHandler.isLoggedIn.value;
+            !expectLoggedIn;
+    final bool homeDataReady = serviceHandler.service.isDataLoaded;
+    final bool showFullSkeleton =
+        !homeDataReady &&
+            (serviceHandler.isHomeLoading.value ||
+                serviceHandler.isAutoLoggingIn.value);
+    final bool showAccountSkeleton = homeDataReady &&
+        serviceHandler.isAutoLoggingIn.value &&
+        serviceHandler.hasSavedTokenForActiveService &&
+        !serviceHandler.isLoggedIn.value;
 
     final List<dynamic> novelData = [];
 
@@ -324,12 +516,41 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                   () {
+                    if (showFullSkeleton) {
+                      return SliverToBoxAdapter(
+                        child: _buildHomeSkeleton(
+                          context: context,
+                          settings: settings,
+                          showStories: serviceHandler.serviceType.value ==
+                                  ServicesType.anilist &&
+                              expectLoggedIn,
+                          showQuickButtons: expectLoggedIn,
+                          carouselCount: 3,
+                        ),
+                      );
+                    }
                     final homeWidgets = _buildHomeWidgets(
                       context: context,
                       serviceHandler: serviceHandler,
                       offlineStorageController: offlineStorageController,
                       settings: settings,
                     );
+                    if (showAccountSkeleton) {
+                      return SliverList.builder(
+                        itemCount: homeWidgets.length + 1,
+                        itemBuilder: (context, index) => RepaintBoundary(
+                          child: index == 0
+                              ? _buildHomeSkeleton(
+                                  context: context,
+                                  settings: settings,
+                                  showStories: false,
+                                  showQuickButtons: true,
+                                  carouselCount: 1,
+                                )
+                              : homeWidgets[index - 1],
+                        ),
+                      );
+                    }
                     return SliverList.builder(
                       itemCount: homeWidgets.length,
                       itemBuilder: (context, index) => RepaintBoundary(

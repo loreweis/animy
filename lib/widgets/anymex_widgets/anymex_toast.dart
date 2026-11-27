@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:anymex/utils/function.dart';
-import 'package:anymex/widgets/anymex_widgets/anymex_animated_logo.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:flutter/material.dart';
 import 'package:anymex/utils/theme_extensions.dart';
@@ -61,10 +60,12 @@ class AnymeXToast {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(30),
-                      child: AnymeXAnimatedLogo(
-                        size: 28,
-                        autoPlay: true,
+                      child: Image.asset(
+                        'assets/images/logo_transparent.webp',
+                        width: 28,
+                        height: 28,
                         color: colorScheme.primary,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

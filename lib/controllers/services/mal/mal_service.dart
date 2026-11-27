@@ -589,7 +589,7 @@ class MalService extends GetxController implements BaseService, OnlineService {
         token: tokenn);
     profileData.value = Profile.fromMAL(data);
     isLoggedIn.value = true;
-    Future.wait([fetchUserAnimeList(), fetchUserMangaList()]);
+    await Future.wait([fetchUserAnimeList(), fetchUserMangaList()]);
   }
 
   @override
