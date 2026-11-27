@@ -24,12 +24,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache Pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ env.FLUTTER_VERSION }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-${{ env.FLUTTER_VERSION }}-
+
+      - name: Setup Environment (.env from secrets)
+        env:
+          AL_CLIENT_ID: ${{ secrets.AL_CLIENT_ID }}
+          AL_CLIENT_SECRET: ${{ secrets.AL_CLIENT_SECRET }}
+          SIMKL_CLIENT_ID: ${{ secrets.SIMKL_CLIENT_ID }}
+          SIMKL_CLIENT_SECRET: ${{ secrets.SIMKL_CLIENT_SECRET }}
+          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
+          MAL_CLIENT_SECRET: ${{ secrets.MAL_CLIENT_SECRET }}
+          CALLBACK_SCHEME: ${{ secrets.CALLBACK_SCHEME }}
+          GIT_CLIENT_ID: ${{ secrets.GIT_CLIENT_ID }}
+          GIT_CLIENT_SECRET: ${{ secrets.GIT_CLIENT_SECRET }}
+          GIT_CALLBACK_SCHEME: ${{ secrets.GIT_CALLBACK_SCHEME }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          cat > .env << EOF
+          AL_CLIENT_ID=$AL_CLIENT_ID
+          AL_CLIENT_SECRET=$AL_CLIENT_SECRET
+          SIMKL_CLIENT_ID=$SIMKL_CLIENT_ID
+          SIMKL_CLIENT_SECRET=$SIMKL_CLIENT_SECRET
+          MAL_CLIENT_ID=$MAL_CLIENT_ID
+          MAL_CLIENT_SECRET=$MAL_CLIENT_SECRET
+          CALLBACK_SCHEME=${CALLBACK_SCHEME:-mysync}
+          GIT_CLIENT_ID=$GIT_CLIENT_ID
+          GIT_CLIENT_SECRET=$GIT_CLIENT_SECRET
+          GIT_CALLBACK_SCHEME=$GIT_CALLBACK_SCHEME
+          TMDB_API_KEY=$TMDB_API_KEY
+          EOF
+
+      - name: Fast Dart Compile Check (Fail Fast)
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          flutter build bundle --debug --no-track-widget-creation --target-platform android-arm64 --no-pub
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          targets: aarch64-linux-android
 
-      - name: Cache Rust
+      - name: Cache Rust & Cargokit
         uses: actions/cache@v4
         with:
           path: |
@@ -37,30 +85,24 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            build/rhttp/
+          key: ${{ runner.os }}-cargo-rhttp-arm64-${{ hashFiles('packages/rhttp/**/Cargo.lock', 'packages/rhttp/rust/**') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-rhttp-arm64-
 
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "17"
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
+      - name: Setup Gradle & Build Cache
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Cache Gradle
+      - name: Cache Android NDK
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: android-ndk-28.2.13676358-linux-x64
 
       - name: Cache CMake
         uses: actions/cache@v4
@@ -68,7 +110,7 @@ jobs:
           path: ~/cmake
           key: cmake-3.18.1-linux-x64
 
-      - name: Setup Android
+      - name: Setup Android & CI Gradle Tuning
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -82,6 +124,12 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           CMAKE_DIR="$HOME/cmake/cmake-3.18.1-Linux-x86_64"
           echo "cmake.dir=$CMAKE_DIR" >> android/local.properties
+
+          # Enable parallel multi-worker Gradle on 4-vCPU / 16GB CI runner
+          sed -i 's/^org\.gradle\.parallel=.*/org.gradle.parallel=true/' android/gradle.properties
+          sed -i 's/^org\.gradle\.workers\.max=.*/org.gradle.workers.max=4/' android/gradle.properties
+          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx6G -XX:MaxMetaspaceSize=1536M -XX:+UseParallelGC/' android/gradle.properties
+
           mkdir -p android/app
           if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > android/app/anymex.jks
@@ -109,48 +157,11 @@ jobs:
           EOF
           fi
 
-      - name: Setup Environment (.env from secrets)
-        env:
-          AL_CLIENT_ID: ${{ secrets.AL_CLIENT_ID }}
-          AL_CLIENT_SECRET: ${{ secrets.AL_CLIENT_SECRET }}
-          SIMKL_CLIENT_ID: ${{ secrets.SIMKL_CLIENT_ID }}
-          SIMKL_CLIENT_SECRET: ${{ secrets.SIMKL_CLIENT_SECRET }}
-          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
-          MAL_CLIENT_SECRET: ${{ secrets.MAL_CLIENT_SECRET }}
-          CALLBACK_SCHEME: ${{ secrets.CALLBACK_SCHEME }}
-          GIT_CLIENT_ID: ${{ secrets.GIT_CLIENT_ID }}
-          GIT_CLIENT_SECRET: ${{ secrets.GIT_CLIENT_SECRET }}
-          GIT_CALLBACK_SCHEME: ${{ secrets.GIT_CALLBACK_SCHEME }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-
-        run: |
-          cat > .env << EOF
-          AL_CLIENT_ID=$AL_CLIENT_ID
-          AL_CLIENT_SECRET=$AL_CLIENT_SECRET
-          SIMKL_CLIENT_ID=$SIMKL_CLIENT_ID
-          SIMKL_CLIENT_SECRET=$SIMKL_CLIENT_SECRET
-          MAL_CLIENT_ID=$MAL_CLIENT_ID
-          MAL_CLIENT_SECRET=$MAL_CLIENT_SECRET
-          CALLBACK_SCHEME=${CALLBACK_SCHEME:-mysync}
-          GIT_CLIENT_ID=$GIT_CLIENT_ID
-          GIT_CLIENT_SECRET=$GIT_CLIENT_SECRET
-          GIT_CALLBACK_SCHEME=$GIT_CALLBACK_SCHEME
-          TMDB_API_KEY=$TMDB_API_KEY
-
-          EOF
-
       - name: Build Android (arm64-v8a only)
         run: |
-          flutter pub get
-          flutter build apk --release --target-platform android-arm64 --split-per-abi
+          flutter build apk --release --target-platform android-arm64 --split-per-abi --no-pub
           cd build/app/outputs/flutter-apk
           mv app-arm64-v8a-release.apk MySync-Android-arm64-v8a.apk
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-arm64
-          path: build/app/outputs/flutter-apk/MySync-Android-arm64-v8a.apk
 
       - name: Publish Mutable Release
         env:
