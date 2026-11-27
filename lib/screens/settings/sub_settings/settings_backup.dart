@@ -623,16 +623,6 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
                 ),
               ),
               AnymeXTile.checkbox(
-                icon: Icons.insights_rounded,
-                title: context.l10n.progressHistory,
-                subtitle: (info['hasStats'] ?? false)
-                    ? "Episode progress, reading logs, and activity stats"
-                    : "No progress or activity data in backup",
-                enabled: info['hasStats'] ?? false,
-                value: _restoreOptions.stats,
-                onChanged: (v) => setState(() => _restoreOptions.stats = v),
-              ),
-              AnymeXTile.checkbox(
                 icon: Icons.playlist_play_rounded,
                 title: context.l10n.customLists,
                 subtitle: context.l10n.customListsAcrossMedia(totalLists.toString()),
