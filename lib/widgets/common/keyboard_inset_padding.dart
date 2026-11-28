@@ -25,7 +25,7 @@ class KeyboardInsetPadding extends StatelessWidget {
         ? keyboardInset
         : (includeSafeBottom
             ? math.max(
-                MediaQuery.paddingOf(context).bottom,
+                MediaQuery.viewPaddingOf(context).bottom,
                 extraBottomWhenClosed,
               )
             : extraBottomWhenClosed);

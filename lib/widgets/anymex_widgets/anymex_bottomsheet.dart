@@ -155,7 +155,7 @@ class AnymeXSheet extends StatelessWidget {
       top: false,
       child: AnimatedPadding(
         padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         child: Container(

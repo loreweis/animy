@@ -108,7 +108,7 @@ class _FloatingPillNavBarState extends State<_FloatingPillNavBar>
         );
 
     final bottomPadding =
-        widget.isDesktop ? 0.0 : MediaQuery.paddingOf(context).bottom;
+        widget.isDesktop ? 0.0 : MediaQuery.viewPaddingOf(context).bottom;
     final finalMargin = widget.margin != null
         ? widget.margin!.copyWith(
             left: widget.isDesktop ? widget.margin!.left : 0.0,
@@ -126,7 +126,7 @@ class _FloatingPillNavBarState extends State<_FloatingPillNavBar>
       child: SizedBox(
         width: widget.isDesktop
             ? double.infinity
-            : MediaQuery.of(context).size.width * 0.85,
+            : MediaQuery.sizeOf(context).width * 0.85,
         child: Container(
           margin: finalMargin,
           decoration: BoxDecoration(

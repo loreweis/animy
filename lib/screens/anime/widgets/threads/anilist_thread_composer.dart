@@ -417,38 +417,34 @@ class AnilistMarkdownToolbar extends StatelessWidget {
       ),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: tools.map((tool) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Tooltip(
-              message: tool.tip,
-              child: Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  canRequestFocus: false,
-                  customBorder: const CircleBorder(),
-                  onTap: tool.onTap,
-                  child: SizedBox(
-                    width: 38,
-                    height: 38,
-                    child: Center(
-                      child: Icon(
-                        tool.icon,
-                        size: 20,
-                        color: colors.onSurfaceVariant,
-                      ),
+    return Material(
+      color: Colors.transparent,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: tools.map((tool) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: InkWell(
+                canRequestFocus: false,
+                customBorder: const CircleBorder(),
+                onTap: tool.onTap,
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Center(
+                    child: Icon(
+                      tool.icon,
+                      size: 20,
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -648,7 +644,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
   Widget build(BuildContext context) {
     final colors = context.colors;
     final isOled = _isDetailsOledDark(context);
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    final bottomSafe = MediaQuery.viewPaddingOf(context).bottom;
 
     if (widget.isLocked || !widget.hasAuthToken) {
       return RepaintBoundary(

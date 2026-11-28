@@ -485,10 +485,7 @@ class _MainAppState extends State<MainApp> {
               child: content,
             );
           },
-          enableLog: true,
-          logWriterCallback: (text, {isError = false}) async {
-            Logger.d(text);
-          },
+          enableLog: false,
         ),
       ),
     );

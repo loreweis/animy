@@ -725,97 +725,130 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                               ),
                             ),
                           )
-                        else
-                          SliverToBoxAdapter(
-                            child: Container(
-                              margin:
-                                  const EdgeInsets.fromLTRB(14, 6, 14, 120),
-                              decoration: BoxDecoration(
-                                color: isOled
+                        else ...[
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+                            sliver: SliverList.builder(
+                              itemCount: _comments.length,
+                              itemBuilder: (context, i) {
+                                final isFirst = i == 0;
+                                final isLast =
+                                    i == _comments.length - 1 && !_hasNextPage;
+                                final cardBg = isOled
                                     ? Colors.white.withValues(alpha: 0.03)
                                     : colors.surfaceContainer
-                                        .opaque(0.35, iReallyMeanIt: true),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: colors.onSurface
-                                      .opaque(0.08, iReallyMeanIt: true),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      16,
-                                      14,
-                                      16,
-                                      14,
+                                        .opaque(0.35, iReallyMeanIt: true);
+                                final borderCol = colors.onSurface
+                                    .opaque(0.08, iReallyMeanIt: true);
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.vertical(
+                                      top: isFirst
+                                          ? const Radius.circular(16)
+                                          : Radius.zero,
+                                      bottom: isLast
+                                          ? const Radius.circular(16)
+                                          : Radius.zero,
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        for (int i = 0;
-                                            i < _comments.length;
-                                            i++) ...[
-                                          if (i > 0)
-                                            Container(
-                                              height: 1,
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                vertical: 14,
-                                              ),
-                                              color: colors.outlineVariant
-                                                  .opaque(0.18,
-                                                      iReallyMeanIt: true),
-                                            ),
-                                          _buildCommentNode(
-                                            context,
-                                            _comments[i],
-                                            depth: 0,
-                                          ),
-                                        ],
-                                      ],
+                                    border: Border(
+                                      left: BorderSide(color: borderCol),
+                                      right: BorderSide(color: borderCol),
+                                      top: isFirst
+                                          ? BorderSide(color: borderCol)
+                                          : BorderSide.none,
+                                      bottom: isLast
+                                          ? BorderSide(color: borderCol)
+                                          : BorderSide.none,
                                     ),
                                   ),
-                                  if (_hasNextPage)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        16,
-                                        0,
-                                        16,
-                                        16,
+                                  padding: EdgeInsets.fromLTRB(
+                                    16,
+                                    isFirst ? 14 : 0,
+                                    16,
+                                    isLast ? 14 : 0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (!isFirst)
+                                        Container(
+                                          height: 1,
+                                          margin: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          color: colors.outlineVariant.opaque(
+                                            0.18,
+                                            iReallyMeanIt: true,
+                                          ),
+                                        ),
+                                      _buildCommentNode(
+                                        context,
+                                        _comments[i],
+                                        depth: 0,
                                       ),
-                                      child: Center(
-                                        child: _isLoadingMore
-                                            ? const SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2.2,
-                                                ),
-                                              )
-                                            : OutlinedButton.icon(
-                                                onPressed: _loadMoreComments,
-                                                icon: const Icon(
-                                                  Icons.expand_more_rounded,
-                                                ),
-                                                label: const Text(
-                                                  'Load more comments',
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                        if (_comments.isEmpty)
-                          const SliverToBoxAdapter(
-                            child: SizedBox(height: 120),
-                          ),
+                          if (_hasNextPage)
+                            SliverToBoxAdapter(
+                              child: Container(
+                                margin:
+                                    const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                                decoration: BoxDecoration(
+                                  color: isOled
+                                      ? Colors.white.withValues(alpha: 0.03)
+                                      : colors.surfaceContainer
+                                          .opaque(0.35, iReallyMeanIt: true),
+                                  borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(16),
+                                  ),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: colors.onSurface
+                                          .opaque(0.08, iReallyMeanIt: true),
+                                    ),
+                                    right: BorderSide(
+                                      color: colors.onSurface
+                                          .opaque(0.08, iReallyMeanIt: true),
+                                    ),
+                                    bottom: BorderSide(
+                                      color: colors.onSurface
+                                          .opaque(0.08, iReallyMeanIt: true),
+                                    ),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: _isLoadingMore
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.2,
+                                          ),
+                                        )
+                                      : OutlinedButton.icon(
+                                          onPressed: _loadMoreComments,
+                                          icon: const Icon(
+                                            Icons.expand_more_rounded,
+                                          ),
+                                          label: const Text(
+                                            'Load more comments',
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                        ],
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 120),
+                        ),
                       ],
                     ),
                   ),

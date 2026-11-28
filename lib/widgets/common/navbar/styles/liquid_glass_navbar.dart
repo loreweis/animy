@@ -79,7 +79,7 @@ class _LiquidGlassNavBarState extends State<_LiquidGlassNavBar> {
     final isDark = theme.brightness == Brightness.dark;
 
     final bottomPadding =
-        widget.isDesktop ? 0.0 : MediaQuery.paddingOf(context).bottom;
+        widget.isDesktop ? 0.0 : MediaQuery.viewPaddingOf(context).bottom;
     final horizontalMargin = widget.isDesktop
         ? (widget.margin?.left ?? 16.0)
         : 16.0;

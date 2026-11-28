@@ -610,7 +610,7 @@ class Settings extends GetxController {
   List<String> get navigationTabOrder {
     final raw = KvHelper.get<String>(_currentTabOrderKey, defaultVal: '');
     final isDesktop =
-        Get.context != null && MediaQuery.of(Get.context!).size.width > 600;
+        Get.context != null && MediaQuery.sizeOf(Get.context!).width > 600;
     final authService =
         Get.isRegistered<ServiceHandler>() ? Get.find<ServiceHandler>() : null;
     final isExtensionsService =

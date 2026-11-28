@@ -397,10 +397,10 @@ class _HomePageState extends State<HomePage> {
     final settings = Get.find<Settings>();
     final sourceController = Get.find<SourceController>();
     final isDesktop = MediaQuery.sizeOf(context).width > 600;
-    final statusBarHeight = MediaQuery.paddingOf(context).top;
+    final statusBarHeight = MediaQuery.viewPaddingOf(context).top;
     const appBarHeight = kToolbarHeight + 20;
     final double bottomNavBarHeight =
-        isDesktop ? 20.0 : (MediaQuery.paddingOf(context).bottom + 65.0);
+        isDesktop ? 20.0 : (MediaQuery.viewPaddingOf(context).bottom + 65.0);
     final bool isMobile =
         getResponsiveValue(context, desktopValue: false, mobileValue: true);
     final TextAlign textAlignment =

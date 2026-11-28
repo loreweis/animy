@@ -135,7 +135,7 @@ class _ClassicNavBarState extends State<_ClassicNavBar>
         );
 
     final bottomPadding =
-        widget.isDesktop ? 0.0 : MediaQuery.paddingOf(context).bottom;
+        widget.isDesktop ? 0.0 : MediaQuery.viewPaddingOf(context).bottom;
     final finalMargin = widget.margin != null
         ? widget.margin!.copyWith(
             bottom: widget.margin!.bottom + bottomPadding,

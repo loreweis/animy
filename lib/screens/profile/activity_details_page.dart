@@ -482,39 +482,55 @@ class _ActivityDetailsSheetState extends State<ActivityDetailsSheet> {
                                   ),
                                 )
                               else
-                                SliverToBoxAdapter(
-                                  child: Container(
-                                    margin: const EdgeInsets.fromLTRB(
-                                        14, 6, 14, 120),
-                                    decoration: BoxDecoration(
-                                      color: isOled
+                                SliverPadding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(14, 6, 14, 0),
+                                  sliver: SliverList.builder(
+                                    itemCount: replies!.length,
+                                    itemBuilder: (context, i) {
+                                      final isFirst = i == 0;
+                                      final isLast = i == replies!.length - 1;
+                                      final cardBg = isOled
                                           ? Colors.white.withValues(alpha: 0.03)
                                           : colors.surfaceContainer.opaque(
                                               0.35,
                                               iReallyMeanIt: true,
-                                            ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: colors.onSurface
-                                            .opaque(0.08, iReallyMeanIt: true),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        16,
-                                        14,
-                                        16,
-                                        14,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          for (int i = 0;
-                                              i < replies!.length;
-                                              i++) ...[
-                                            if (i > 0)
+                                            );
+                                      final borderCol = colors.onSurface
+                                          .opaque(0.08, iReallyMeanIt: true);
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          color: cardBg,
+                                          borderRadius: BorderRadius.vertical(
+                                            top: isFirst
+                                                ? const Radius.circular(16)
+                                                : Radius.zero,
+                                            bottom: isLast
+                                                ? const Radius.circular(16)
+                                                : Radius.zero,
+                                          ),
+                                          border: Border(
+                                            left: BorderSide(color: borderCol),
+                                            right: BorderSide(color: borderCol),
+                                            top: isFirst
+                                                ? BorderSide(color: borderCol)
+                                                : BorderSide.none,
+                                            bottom: isLast
+                                                ? BorderSide(color: borderCol)
+                                                : BorderSide.none,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.fromLTRB(
+                                          16,
+                                          isFirst ? 14 : 0,
+                                          16,
+                                          isLast ? 14 : 0,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (!isFirst)
                                               Container(
                                                 height: 1,
                                                 margin:
@@ -527,15 +543,14 @@ class _ActivityDetailsSheetState extends State<ActivityDetailsSheet> {
                                               ),
                                             _buildReplyCard(replies![i]),
                                           ],
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              if (replies == null || replies!.isEmpty)
-                                const SliverToBoxAdapter(
-                                  child: SizedBox(height: 120),
-                                ),
+                              const SliverToBoxAdapter(
+                                child: SizedBox(height: 120),
+                              ),
                             ],
                           ),
                         ),
