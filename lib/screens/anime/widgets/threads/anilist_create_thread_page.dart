@@ -8,6 +8,7 @@ import 'package:anymex/utils/markdown.dart';
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
+import 'package:anymex/widgets/common/keyboard_inset_padding.dart';
 import 'package:anymex/widgets/non_widgets/snackbar.dart';
 import 'package:flutter/material.dart';
 
@@ -41,6 +42,7 @@ class AnilistCreateThreadSheet extends StatefulWidget {
     final detailsTheme = inheritedTheme ?? Theme.of(context);
     return showModalBottomSheet<AnilistThread>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
@@ -239,27 +241,22 @@ class _AnilistCreateThreadSheetState extends State<AnilistCreateThreadSheet> {
         ? Colors.white.withValues(alpha: 0.04)
         : colors.onSurface.opaque(0.06, iReallyMeanIt: true);
     final borderCol = colors.onSurface.opaque(0.10, iReallyMeanIt: true);
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
     return RepaintBoundary(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: Container(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(
-              top: BorderSide(color: borderCol, width: 0.9),
-              left: BorderSide(color: borderCol, width: 0.5),
-              right: BorderSide(color: borderCol, width: 0.5),
-            ),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: BoxDecoration(
+          color: sheetBg,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: borderCol, width: 0.9),
+            left: BorderSide(color: borderCol, width: 0.5),
+            right: BorderSide(color: borderCol, width: 0.5),
           ),
-          child: SafeArea(
-            top: false,
-            child: Column(
+        ),
+        child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Handle + Header
@@ -329,7 +326,8 @@ class _AnilistCreateThreadSheetState extends State<AnilistCreateThreadSheet> {
 
                 // Scrollable Fields: Title -> Write thread body -> Categories (below body)
                 Flexible(
-                  child: SingleChildScrollView(
+                  child: RepaintBoundary(
+                    child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     physics: const BouncingScrollPhysics(),
                     child: Column(
@@ -474,60 +472,62 @@ class _AnilistCreateThreadSheetState extends State<AnilistCreateThreadSheet> {
                       ],
                     ),
                   ),
+                  ),
                 ),
 
                 // Bottom bar: MD toolbar directly above Post Thread button
                 Container(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(color: borderCol, width: 0.8),
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_isPreview) ...[
-                        AnilistMarkdownToolbar(
-                          controller: _bodyController,
-                          focusNode: _bodyFocusNode,
-                          onBeforeInsert: () {
-                            if (_isPreview) {
-                              setState(() => _isPreview = false);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: FilledButton.icon(
-                          onPressed: _isSubmitting ? null : _submitThread,
-                          icon: _isSubmitting
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      colors.onPrimary,
+                  child: KeyboardInsetPadding(
+                    includeSafeBottom: true,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!_isPreview) ...[
+                          AnilistMarkdownToolbar(
+                            controller: _bodyController,
+                            focusNode: _bodyFocusNode,
+                            onBeforeInsert: () {
+                              if (_isPreview) {
+                                setState(() => _isPreview = false);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: FilledButton.icon(
+                            onPressed: _isSubmitting ? null : _submitThread,
+                            icon: _isSubmitting
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        colors.onPrimary,
+                                      ),
                                     ),
-                                  ),
-                                )
-                              : const Icon(Icons.send_rounded, size: 18),
-                          label: Text(
-                            _isSubmitting ? 'Posting...' : 'Post Thread',
+                                  )
+                                : const Icon(Icons.send_rounded, size: 18),
+                            label: Text(
+                              _isSubmitting ? 'Posting...' : 'Post Thread',
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
       ),
     );
   }

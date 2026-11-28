@@ -59,6 +59,22 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
   /// Collapsed by default so expand indicator (⌄ N) is immediately clear
   /// and fewer HtmlWidgets are mounted upfront.
   final Set<int> _expandedCommentIds = {};
+  final Map<int, GlobalKey> _commentKeys = {};
+
+  GlobalKey _keyForComment(int commentId) =>
+      _commentKeys.putIfAbsent(commentId, () => GlobalKey());
+
+  void _scrollToComment(int commentId) {
+    final targetContext = _commentKeys[commentId]?.currentContext;
+    if (targetContext != null) {
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        alignment: 0.2,
+      );
+    }
+  }
 
   int? get _currentUserId {
     if (!Get.isRegistered<AnilistAuth>()) return null;
@@ -395,11 +411,13 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     } else if (replyTo != null) {
       if (_replyingToNotifier.value?.id == replyTo.id) {
         _replyingToNotifier.value = null;
-      } else {
-        _replyingToNotifier.value = replyTo;
+        return;
       }
+      _replyingToNotifier.value = replyTo;
     }
-    _composerFocusNode.requestFocus();
+    if (!_composerFocusNode.hasFocus) {
+      _composerFocusNode.requestFocus();
+    }
   }
 
   Future<void> _openInBrowser() async {
@@ -610,6 +628,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
 
     return AnymeXScaffold(
       disabled: true,
+      resizeToAvoidBottomInset: false,
       isOled: isOled,
       color: isOled ? '' : widget.posterColorHex,
       body: Stack(
@@ -809,6 +828,10 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                 controller: _replyController,
                 focusNode: _composerFocusNode,
                 replyingToNotifier: _replyingToNotifier,
+                onTapReplyBanner: () {
+                  final id = _replyingToNotifier.value?.id;
+                  if (id != null) _scrollToComment(id);
+                },
                 onSubmit: _submitReply,
                 isLocked: _thread.isLocked,
                 hasAuthToken: AnilistThreadsService.hasAnilistToken,
@@ -912,6 +935,37 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
               ),
               const SizedBox(width: 8),
               InkWell(
+                canRequestFocus: false,
+                onTap: () => _focusComposer(resetTarget: true),
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.opaque(0.06, iReallyMeanIt: true),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 15,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 5),
+                      AnymeXText(
+                        '${_thread.replyCount}',
+                        size: 12,
+                        variant: TextVariant.semiBold,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              InkWell(
                 onTap: _toggleThreadLike,
                 borderRadius: BorderRadius.circular(18),
                 child: Container(
@@ -943,36 +997,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                         color: _thread.isLiked
                             ? colors.primary
                             : colors.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              InkWell(
-                onTap: () => _focusComposer(resetTarget: true),
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: colors.onSurface.opaque(0.06, iReallyMeanIt: true),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        size: 15,
-                        color: colors.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 5),
-                      AnymeXText(
-                        '${_thread.replyCount}',
-                        size: 12,
-                        variant: TextVariant.semiBold,
-                        color: colors.onSurfaceVariant,
                       ),
                     ],
                   ),
@@ -1062,12 +1086,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
     final isExpanded = _expandedCommentIds.contains(comment.id);
     final totalReplies = hasChildren ? _countDescendants(comment) : 0;
 
-    final railColor = switch (depth % 3) {
-      1 => colors.primary.withValues(alpha: 0.45),
-      2 => colors.secondary.withValues(alpha: 0.45),
-      _ => colors.tertiary.withValues(alpha: 0.45),
-    };
-
     final bodyWidget = AnilistAboutMe(about: comment.commentHtml);
 
     final commentContent = ValueListenableBuilder<AnilistThreadComment?>(
@@ -1077,6 +1095,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
         final isReplyTarget = activeReplyTarget?.id == comment.id;
 
         return Container(
+          key: _keyForComment(comment.id),
           padding: isReplyTarget ? const EdgeInsets.all(8) : EdgeInsets.zero,
           decoration: isReplyTarget
               ? BoxDecoration(
@@ -1087,7 +1106,7 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: [Avatar] nama_akun · date on left | [Love] [Reply icon] on right
+              // Row 1: [Avatar] nama_akun · date on left | [Reply icon] [Love] on right
               Row(
                 children: [
                   Expanded(
@@ -1126,6 +1145,27 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                     ),
                   ),
                   const SizedBox(width: 6),
+                  if (!_thread.isLocked && !comment.isLocked) ...[
+                    Tooltip(
+                      message: 'Reply',
+                      child: InkWell(
+                        canRequestFocus: false,
+                        onTap: () => _focusComposer(replyTo: comment),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.reply_rounded,
+                            size: 16,
+                            color: isReplyTarget
+                                ? colors.primary
+                                : colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
                   InkWell(
                     onTap: () => _toggleCommentLike(comment),
                     borderRadius: BorderRadius.circular(14),
@@ -1159,26 +1199,6 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                       ),
                     ),
                   ),
-                  if (!_thread.isLocked && !comment.isLocked) ...[
-                    const SizedBox(width: 2),
-                    Tooltip(
-                      message: 'Reply',
-                      child: InkWell(
-                        onTap: () => _focusComposer(replyTo: comment),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.all(5),
-                          child: Icon(
-                            Icons.reply_rounded,
-                            size: 16,
-                            color: isReplyTarget
-                                ? colors.primary
-                                : colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                   if (isOwn) ...[
                     const SizedBox(width: 2),
                     InkWell(
@@ -1196,10 +1216,10 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   ],
                 ],
               ),
-              // Row 2: Comment body aligned flush-left with avatar (just like Thread Post)
-              const SizedBox(height: 8),
+              // Row 2: Comment body always flush-left with its own avatar
+              const SizedBox(height: 6),
               cachedBody!,
-              // Row 3: Expand/collapse replies indicator + count ONLY (no "replies/hide" text)
+              // Row 3: Expand/collapse replies ("N replies" / "1 reply", arrow flips down/up, no "hide")
               if (hasChildren) ...[
                 const SizedBox(height: 6),
                 InkWell(
@@ -1214,8 +1234,10 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: 3,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1223,14 +1245,14 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
                           isExpanded
                               ? Icons.keyboard_arrow_up_rounded
                               : Icons.keyboard_arrow_down_rounded,
-                          size: 17,
+                          size: 18,
                           color: colors.primary,
                         ),
-                        const SizedBox(width: 2),
+                        const SizedBox(width: 3),
                         AnymeXText(
-                          '$totalReplies',
+                          '$totalReplies ${totalReplies == 1 ? 'reply' : 'replies'}',
                           size: 12,
-                          variant: TextVariant.bold,
+                          variant: TextVariant.semiBold,
                           color: colors.primary,
                         ),
                       ],
@@ -1244,20 +1266,13 @@ class _AnilistThreadDetailPageState extends State<AnilistThreadDetailPage> {
       },
     );
 
+    // No tree vertical rail '|'; child avatar & comment body both align directly
+    // under the 'r' of 'reply'/'replies' (30px from top-level left edge) straight down.
     final childrenWidget = (hasChildren && isExpanded)
-        ? Container(
-            margin: EdgeInsets.only(
-              left: isTopLevel ? 12.0 : (depth < 4 ? 10.0 : 0.0),
+        ? Padding(
+            padding: EdgeInsets.only(
+              left: isTopLevel ? 30.0 : 0.0,
               top: 8.0,
-            ),
-            padding: const EdgeInsets.only(left: 12.0),
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: railColor,
-                  width: 2.0,
-                ),
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -34,7 +34,6 @@ import 'package:anymex/screens/novel/details/details_view.dart';
 import 'package:anymex/widgets/common/installed_extensions_gridview.dart';
 import 'package:anymex_extension_runtime_bridge/anymex_extension_runtime_bridge.dart';
 import 'package:anymex/screens/other_features.dart';
-import 'package:anymex/screens/anime/widgets/stories/stories_row.dart';
 import 'package:anymex/utils/fallback/fallback_anime.dart' as fb;
 import 'package:anymex/utils/fallback/fallback_manga.dart' as fbm;
 import 'package:anymex/utils/function.dart';
@@ -118,7 +117,6 @@ class AnilistData extends GetxController implements BaseService, OnlineService {
   RxList<Widget> homeWidgets(BuildContext context) {
     final settings = Get.find<Settings>();
     return [
-      const StoriesRow(),
       if (anilistAuth.isLoggedIn.value) ...[
         Obx(() {
           anilistAuth.animeList.value.length;

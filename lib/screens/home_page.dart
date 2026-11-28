@@ -136,10 +136,39 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  int _estimateSkeletonCarouselCount(
+    ServiceHandler serviceHandler,
+    Settings settings,
+    bool expectLoggedIn,
+  ) {
+    switch (serviceHandler.serviceType.value) {
+      case ServicesType.anilist:
+        final cards = settings.homePageCards;
+        if (expectLoggedIn) {
+          final enabled = cards.values.where((v) => v).length;
+          return enabled.clamp(2, 6);
+        }
+        final recCount = (cards['Recommended Animes'] == true ? 1 : 0) +
+            (cards['Recommended Mangas'] == true ? 1 : 0);
+        return recCount.clamp(1, 2);
+      case ServicesType.mal:
+        final accountCount = expectLoggedIn
+            ? settings.homePageCardsMal.values.where((v) => v).length
+            : 0;
+        return (accountCount + 4).clamp(2, 6);
+      case ServicesType.simkl:
+        final accountCount = expectLoggedIn
+            ? settings.homePageCardsSimkl.values.where((v) => v).length
+            : 0;
+        return (accountCount + 2).clamp(2, 5);
+      case ServicesType.extensions:
+        return 2;
+    }
+  }
+
   Widget _buildHomeSkeleton({
     required BuildContext context,
     required Settings settings,
-    required bool showStories,
     required bool showQuickButtons,
     required int carouselCount,
   }) {
@@ -166,44 +195,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showStories)
-            Padding(
-              padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 4, 16, 14),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: Row(
-                  children: List.generate(
-                    6,
-                    (_) => Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 66,
-                            height: 66,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            width: 48,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           if (showQuickButtons)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -420,15 +411,10 @@ class _HomePageState extends State<HomePage> {
     final bool showLegacyHero =
         serviceHandler.serviceType.value != ServicesType.anilist ||
             !expectLoggedIn;
-    final bool homeDataReady = serviceHandler.service.isDataLoaded;
-    final bool showFullSkeleton =
-        !homeDataReady &&
-            (serviceHandler.isHomeLoading.value ||
-                serviceHandler.isAutoLoggingIn.value);
-    final bool showAccountSkeleton = homeDataReady &&
-        serviceHandler.isAutoLoggingIn.value &&
-        serviceHandler.hasSavedTokenForActiveService &&
-        !serviceHandler.isLoggedIn.value;
+    final bool waitingForAccountLists = serviceHandler.isAutoLoggingIn.value &&
+        serviceHandler.hasSavedTokenForActiveService;
+    final bool showHomeSkeleton =
+        serviceHandler.isHomeLoading.value || waitingForAccountLists;
 
     final List<dynamic> novelData = [];
 
@@ -440,6 +426,7 @@ class _HomePageState extends State<HomePage> {
         return serviceHandler.refresh();
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
@@ -516,16 +503,17 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                   () {
-                    if (showFullSkeleton) {
+                    if (showHomeSkeleton) {
                       return SliverToBoxAdapter(
                         child: _buildHomeSkeleton(
                           context: context,
                           settings: settings,
-                          showStories: serviceHandler.serviceType.value ==
-                                  ServicesType.anilist &&
-                              expectLoggedIn,
                           showQuickButtons: expectLoggedIn,
-                          carouselCount: 3,
+                          carouselCount: _estimateSkeletonCarouselCount(
+                            serviceHandler,
+                            settings,
+                            expectLoggedIn,
+                          ),
                         ),
                       );
                     }
@@ -535,22 +523,6 @@ class _HomePageState extends State<HomePage> {
                       offlineStorageController: offlineStorageController,
                       settings: settings,
                     );
-                    if (showAccountSkeleton) {
-                      return SliverList.builder(
-                        itemCount: homeWidgets.length + 1,
-                        itemBuilder: (context, index) => RepaintBoundary(
-                          child: index == 0
-                              ? _buildHomeSkeleton(
-                                  context: context,
-                                  settings: settings,
-                                  showStories: false,
-                                  showQuickButtons: true,
-                                  carouselCount: 1,
-                                )
-                              : homeWidgets[index - 1],
-                        ),
-                      );
-                    }
                     return SliverList.builder(
                       itemCount: homeWidgets.length,
                       itemBuilder: (context, index) => RepaintBoundary(

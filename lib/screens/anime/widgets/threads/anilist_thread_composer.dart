@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:anymex/controllers/services/anilist/anilist_auth.dart';
 import 'package:anymex/controllers/settings/settings.dart';
 
@@ -8,6 +6,7 @@ import 'package:anymex/screens/anime/widgets/comments/widgets/gif_picker_sheet.d
 import 'package:anymex/utils/theme_extensions.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_image.dart';
 import 'package:anymex/widgets/anymex_widgets/anymex_text.dart';
+import 'package:anymex/widgets/common/keyboard_inset_padding.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -460,10 +459,37 @@ class AnilistMarkdownToolbar extends StatelessWidget {
 ///   borderless Preview/Compose + circular Send button inside right when text exists)
 /// - LAYER 2: Separate MD-style bottom sheet that appears ONLY when focused
 ///   and collapses automatically when keyboard is dismissed or unfocused.
+class ComposerBannerData {
+  final int? targetId;
+  final String title;
+  final String subtitle;
+  final IconData? leadingIcon;
+  final Color? leadingColor;
+  final String? leadingTooltip;
+  final VoidCallback? onLeadingTap;
+  final VoidCallback? onTap;
+
+  const ComposerBannerData({
+    this.targetId,
+    required this.title,
+    this.subtitle = '',
+    this.leadingIcon,
+    this.leadingColor,
+    this.leadingTooltip,
+    this.onLeadingTap,
+    this.onTap,
+  });
+}
+
 class AnilistThreadComposer extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
-  final ValueNotifier<AnilistThreadComment?> replyingToNotifier;
+  final ValueNotifier<AnilistThreadComment?>? replyingToNotifier;
+  final ValueNotifier<ComposerBannerData?>? customBannerNotifier;
+  final VoidCallback? onClearStatusBanner;
+  final VoidCallback? onTapReplyBanner;
+  final String defaultHint;
+  final bool autofocus;
   final Future<bool> Function(String text, int? parentCommentId) onSubmit;
   final bool isLocked;
   final bool hasAuthToken;
@@ -472,9 +498,14 @@ class AnilistThreadComposer extends StatefulWidget {
     super.key,
     required this.controller,
     required this.focusNode,
-    required this.replyingToNotifier,
+    this.replyingToNotifier,
+    this.customBannerNotifier,
+    this.onClearStatusBanner,
+    this.onTapReplyBanner,
+    this.defaultHint = 'Write a comment...',
+    this.autofocus = false,
     required this.onSubmit,
-    required this.isLocked,
+    this.isLocked = false,
     required this.hasAuthToken,
   });
 
@@ -490,7 +521,12 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
   bool _isSending = false;
   bool _wasKeyboardVisible = false;
   final Set<int> _revealedSpoilers = <int>{};
+  late final ValueNotifier<AnilistThreadComment?> _fallbackReplyingTo =
+      ValueNotifier<AnilistThreadComment?>(null);
   String? _avatarUrl;
+
+  ValueNotifier<AnilistThreadComment?> get _effectiveReplyingTo =>
+      widget.replyingToNotifier ?? _fallbackReplyingTo;
 
   bool get _showToolbar => _hasFocus && !_isPreview;
 
@@ -503,6 +539,13 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
     _hasText = widget.controller.text.trim().isNotEmpty;
     widget.focusNode.addListener(_onFocusChange);
     widget.controller.addListener(_onTextChange);
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !widget.focusNode.hasFocus) {
+          widget.focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -510,6 +553,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
     WidgetsBinding.instance.removeObserver(this);
     widget.focusNode.removeListener(_onFocusChange);
     widget.controller.removeListener(_onTextChange);
+    _fallbackReplyingTo.dispose();
     super.dispose();
   }
 
@@ -572,13 +616,14 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
     if (text.isEmpty || _isSending) return;
 
     setState(() => _isSending = true);
-    final ok = await widget.onSubmit(text, widget.replyingToNotifier.value?.id);
+    final ok = await widget.onSubmit(text, _effectiveReplyingTo.value?.id);
     if (!mounted) return;
 
     setState(() => _isSending = false);
     if (ok) {
       widget.controller.clear();
-      widget.replyingToNotifier.value = null;
+      _effectiveReplyingTo.value = null;
+      widget.onClearStatusBanner?.call();
       setState(() {
         _isPreview = false;
         _revealedSpoilers.clear();
@@ -604,8 +649,6 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
     final colors = context.colors;
     final isOled = _isDetailsOledDark(context);
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final keyboardOpen = keyboardInset > 0;
 
     if (widget.isLocked || !widget.hasAuthToken) {
       return RepaintBoundary(
@@ -665,84 +708,47 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
     }
 
     return RepaintBoundary(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: keyboardInset),
+      child: KeyboardInsetPadding(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Replying-to compact banner above the pill when replying to a comment
-            ValueListenableBuilder<AnilistThreadComment?>(
-              valueListenable: widget.replyingToNotifier,
-              builder: (context, replyingTo, _) {
-                if (replyingTo == null) return const SizedBox.shrink();
-                final snippet = _plainSnippet(replyingTo.commentHtml);
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(12, 7, 8, 7),
-                      decoration: BoxDecoration(
-                        color: isOled
-                            ? const Color(0xFF101014)
-                            : colors.surfaceContainer.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colors.primary.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.subdirectory_arrow_right_rounded,
-                            size: 16,
-                            color: colors.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                AnymeXText(
-                                  'Replying to @${replyingTo.user?.name ?? 'comment'}',
-                                  size: 11.5,
-                                  variant: TextVariant.bold,
-                                  color: colors.primary,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (snippet.isNotEmpty)
-                                  AnymeXText(
-                                    snippet,
-                                    size: 11,
-                                    color: colors.onSurfaceVariant,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          InkWell(
-                            canRequestFocus: false,
-                            onTap: () => widget.replyingToNotifier.value = null,
-                            borderRadius: BorderRadius.circular(14),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 16,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            // Reply / Message / Edit compact banner above the pill
+            if (widget.customBannerNotifier != null)
+              ValueListenableBuilder<ComposerBannerData?>(
+                valueListenable: widget.customBannerNotifier!,
+                builder: (context, banner, _) {
+                  if (banner == null || banner.title.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return _buildStatusBanner(
+                    colors: colors,
+                    isOled: isOled,
+                    title: banner.title,
+                    subtitle: banner.subtitle,
+                    leadingIcon: banner.leadingIcon,
+                    leadingColor: banner.leadingColor,
+                    leadingTooltip: banner.leadingTooltip,
+                    onLeadingTap: banner.onLeadingTap,
+                    onTap: banner.onTap,
+                    onClose: () => widget.onClearStatusBanner?.call(),
+                  );
+                },
+              )
+            else
+              ValueListenableBuilder<AnilistThreadComment?>(
+                valueListenable: _effectiveReplyingTo,
+                builder: (context, replyingTo, _) {
+                  if (replyingTo == null) return const SizedBox.shrink();
+                  return _buildStatusBanner(
+                    colors: colors,
+                    isOled: isOled,
+                    title: 'Reply to ${replyingTo.user?.name ?? 'comment'}',
+                    subtitle: _plainSnippet(replyingTo.commentHtml),
+                    onTap: widget.onTapReplyBanner,
+                    onClose: () => _effectiveReplyingTo.value = null,
+                  );
+                },
+              ),
 
             // LAYER 1: Floating Full-Pill Chat Bar (Home-bar glass/OLED styling)
             Padding(
@@ -750,7 +756,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
                 12,
                 0,
                 12,
-                _showToolbar ? 10 : (keyboardOpen ? 10 : bottomSafe + 12),
+                _showToolbar ? 10 : (_hasFocus ? 10 : bottomSafe + 12),
               ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 680),
@@ -792,19 +798,120 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
             ),
 
             // LAYER 2: Separate MD-Style Bottom Sheet (only visible when focused & not previewing)
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.topCenter,
-              child: _showToolbar
-                  ? _buildMarkdownSheet(
-                      colors,
-                      isOled,
-                      keyboardOpen ? 0 : bottomSafe,
-                    )
-                  : const SizedBox(width: double.infinity, height: 0),
-            ),
+            if (_showToolbar)
+              _buildMarkdownSheet(
+                colors,
+                isOled,
+                0,
+              ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBanner({
+    required ColorScheme colors,
+    required bool isOled,
+    required String title,
+    required String subtitle,
+    IconData? leadingIcon,
+    Color? leadingColor,
+    String? leadingTooltip,
+    VoidCallback? onLeadingTap,
+    VoidCallback? onTap,
+    required VoidCallback onClose,
+  }) {
+    final resolvedIcon = leadingIcon ?? Icons.subdirectory_arrow_right_rounded;
+    final resolvedColor = leadingColor ?? colors.primary;
+
+    Widget leadingWidget = Icon(
+      resolvedIcon,
+      size: onLeadingTap != null ? 18 : 16,
+      color: resolvedColor,
+    );
+
+    if (onLeadingTap != null) {
+      leadingWidget = Tooltip(
+        message: leadingTooltip ?? '',
+        child: Material(
+          color: resolvedColor.withValues(alpha: 0.14),
+          shape: const CircleBorder(),
+          child: InkWell(
+            canRequestFocus: false,
+            customBorder: const CircleBorder(),
+            onTap: onLeadingTap,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: leadingWidget,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
+          decoration: BoxDecoration(
+            color: isOled
+                ? const Color(0xFF101014)
+                : colors.surfaceContainer.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colors.primary.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              leadingWidget,
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnymeXText(
+                        title,
+                        size: 11.5,
+                        variant: TextVariant.bold,
+                        color: colors.primary,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (subtitle.isNotEmpty)
+                        AnymeXText(
+                          subtitle,
+                          size: 11,
+                          color: colors.onSurfaceVariant,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              InkWell(
+                canRequestFocus: false,
+                onTap: onClose,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -837,13 +944,13 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
           final isTranslucent = settingsController.transculentBar;
           final bgColor = isOled
               ? (isTranslucent
-                  ? Colors.black.withValues(alpha: 0.72)
+                  ? const Color(0xFF0A0A0D).withValues(alpha: 0.92)
                   : Colors.black)
               : (isTranslucent
-                  ? colors.surfaceContainer.withValues(alpha: 0.45)
-                  : colors.surfaceContainer.withValues(alpha: 0.96));
+                  ? colors.surfaceContainer.withValues(alpha: 0.90)
+                  : colors.surfaceContainer.withValues(alpha: 0.98));
 
-          final inner = Container(
+          return Container(
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
@@ -851,12 +958,6 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
               borderRadius: radius,
             ),
             child: child,
-          );
-
-          if (!isTranslucent) return inner;
-          return BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: inner,
           );
         }),
       ),
@@ -899,7 +1000,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
 
   Widget _buildTextField(ColorScheme colors) {
     return ValueListenableBuilder<AnilistThreadComment?>(
-      valueListenable: widget.replyingToNotifier,
+      valueListenable: _effectiveReplyingTo,
       builder: (context, replyingTo, _) {
         return TextField(
           controller: widget.controller,
@@ -923,7 +1024,7 @@ class _AnilistThreadComposerState extends State<AnilistThreadComposer>
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             hintText:
-                replyingTo != null ? 'Write a reply...' : 'Write a comment...',
+                replyingTo != null ? 'Write a reply...' : widget.defaultHint,
             hintStyle: TextStyle(
               color: colors.onSurfaceVariant.opaque(0.7, iReallyMeanIt: true),
               fontSize: 15,

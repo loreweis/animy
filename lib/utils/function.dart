@@ -578,7 +578,7 @@ String formatTimeAgo(int millisecondsSinceEpoch) {
   } else if (difference.inDays < 7) {
     return "${difference.inDays} days ago";
   } else {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    return "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
   }
 }
 

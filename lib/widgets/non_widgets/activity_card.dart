@@ -18,6 +18,7 @@ import 'package:anymex/utils/al_about_me.dart';
 import 'package:anymex/utils/function.dart';
 import 'package:anymex/utils/markdown.dart';
 import 'package:anymex/widgets/common/marquee_text.dart';
+import 'package:anymex/widgets/common/keyboard_inset_padding.dart';
 import 'package:anymex/widgets/non_widgets/activity_composer_sheet.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:anymex/screens/anime/widgets/list_editor.dart';
@@ -270,7 +271,7 @@ class _ActivityCardState extends State<ActivityCard> {
       builder: (sheetContext) {
         final likeCount = activity.likes.length;
         final contentHeight = 70.0 + (likeCount * 90.0) + 16.0;
-        final screenHeight = MediaQuery.of(sheetContext).size.height;
+        final screenHeight = MediaQuery.sizeOf(sheetContext).height;
         final initialFraction =
             (contentHeight / screenHeight).clamp(0.25, 0.9);
         return DraggableScrollableSheet(
@@ -453,9 +454,8 @@ class _ActivityCardState extends State<ActivityCard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        return KeyboardInsetPadding(
+          padding: const EdgeInsets.only(
             left: 16,
             right: 16,
             top: 20,
@@ -542,13 +542,16 @@ class _ActivityCardState extends State<ActivityCard> {
             if (activity.mediaBannerUrl != null ||
                 activity.mediaCoverUrl != null)
               Positioned.fill(
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(sigmaX: 3.2, sigmaY: 3.2),
-                  child: CachedNetworkImage(
-                    imageUrl:
-                        (activity.mediaBannerUrl ?? activity.mediaCoverUrl)!,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
+                child: RepaintBoundary(
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(sigmaX: 3.2, sigmaY: 3.2),
+                    child: CachedNetworkImage(
+                      imageUrl:
+                          (activity.mediaBannerUrl ?? activity.mediaCoverUrl)!,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 240,
+                      filterQuality: FilterQuality.low,
+                    ),
                   ),
                 ),
               ),
@@ -641,64 +644,112 @@ class _ActivityCardState extends State<ActivityCard> {
                               )
                             : _buildFallbackAvatar(context, 14),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    if (activity.authorId != null) {
-                                      final currentUserId = Get.find<ServiceHandler>().profileData.value.id;
-                                      if (activity.authorId.toString() == currentUserId) {
-                                        navigateWithSlide(() => const ProfilePage());
-                                      } else {
-                                        navigateWithSlide(() => UserProfilePage(
-                                            userId: activity.authorId!));
-                                      }
-                                    }
-                                  },
-                                  child: AnymeXText(
-                                    activity.authorName ?? 'User',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          context.theme.colorScheme.onSurface,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                        child: GestureDetector(
+                          onTap: () {
+                            if (activity.authorId != null) {
+                              final currentUserId =
+                                  Get.find<ServiceHandler>().profileData.value.id;
+                              if (activity.authorId.toString() == currentUserId) {
+                                navigateWithSlide(() => const ProfilePage());
+                              } else {
+                                navigateWithSlide(() => UserProfilePage(
+                                    userId: activity.authorId!));
+                              }
+                            }
+                          },
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: AnymeXText(
+                                  activity.authorName ?? 'User',
+                                  size: 13.5,
+                                  variant: TextVariant.bold,
+                                  color: context.theme.colorScheme.primary,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                if (activity.isPinned) ...[
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.push_pin, size: 12),
-                                ],
-                                if (activity.isPrivate) ...[
-                                  const SizedBox(width: 6),
-                                  Icon(Icons.lock, size: 10, color: subtleText),
-                                  const SizedBox(width: 4),
-                                  AnymeXText(
-                                    context.l10n.private,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: subtleText,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            AnymeXText(
-                              activity.timeAgo,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: subtleText,
                               ),
-                            ),
-                          ],
+                              if (activity.isPinned) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.push_pin, size: 12),
+                              ],
+                              if (activity.isPrivate) ...[
+                                const SizedBox(width: 4),
+                                Icon(Icons.lock, size: 11, color: subtleText),
+                              ],
+                              if (activity.timeAgo.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                AnymeXText(
+                                  '· ${activity.timeAgo}',
+                                  size: 11,
+                                  color: subtleText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: widget.onReplyTap,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                size: 15,
+                                color: context.theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              AnymeXText(
+                                '${activity.replyCount}',
+                                size: 11.5,
+                                variant: TextVariant.semiBold,
+                                color: context.theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      InkWell(
+                        onTap: _toggleLike,
+                        onLongPress: () => _showLikedBySheet(context),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                activity.isLiked
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                size: 15,
+                                color: activity.isLiked
+                                    ? context.theme.colorScheme.primary
+                                    : context.theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              AnymeXText(
+                                '${activity.likeCount}',
+                                size: 11.5,
+                                variant: TextVariant.semiBold,
+                                color: activity.isLiked
+                                    ? context.theme.colorScheme.primary
+                                    : context.theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       InkWell(
@@ -706,7 +757,7 @@ class _ActivityCardState extends State<ActivityCard> {
                         borderRadius: BorderRadius.circular(16),
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
-                          child: Icon(Icons.more_horiz,
+                          child: Icon(Icons.more_vert,
                               size: 18, color: subtleText),
                         ),
                       ),
@@ -825,36 +876,7 @@ class _ActivityCardState extends State<ActivityCard> {
                                 ] else ...[
                                   _buildRichActivityContent(activity),
                                 ],
-                                if (isListActivity) const Spacer(),
-                                const SizedBox(height: 12),
-                                Builder(builder: (context) {
-                                  final colorScheme = context.theme.colorScheme;
-                                  final likeColor = activity.isLiked
-                                      ? Colors.redAccent
-                                      : colorScheme.onSurfaceVariant;
 
-                                  return Row(
-                                    children: [
-                                      _ActivityActionChip(
-                                        icon: activity.isLiked
-                                            ? Icons.favorite
-                                            : Icons.favorite_outline,
-                                        count: '${activity.likeCount}',
-                                        foreground: likeColor,
-                                        onTap: _toggleLike,
-                                        onLongPress: () =>
-                                            _showLikedBySheet(context),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _ActivityActionChip(
-                                        icon: Icons.chat_bubble_outline,
-                                        count: '${activity.replyCount}',
-                                        foreground: colorScheme.onSurfaceVariant,
-                                        onTap: widget.onReplyTap,
-                                      ),
-                                    ],
-                                  );
-                                }),
                               ],
                             ),
                           ),

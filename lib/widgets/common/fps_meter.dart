@@ -143,9 +143,9 @@ class _FpsMeterState extends State<FpsMeter> {
       builder: (context, visible, _) {
         if (!visible) return const SizedBox.shrink();
 
-        final mediaQuery = MediaQuery.of(context);
-        final screenWidth = mediaQuery.size.width;
-        final screenHeight = mediaQuery.size.height;
+        final screenSize = MediaQuery.sizeOf(context);
+        final screenWidth = screenSize.width;
+        final screenHeight = screenSize.height;
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         final statusColors = _getStatusColors(_fps, theme);

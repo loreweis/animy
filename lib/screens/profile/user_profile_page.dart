@@ -10,6 +10,8 @@ import 'package:anymex/models/Anilist/anilist_profile.dart';
 
 import 'package:anymex/widgets/common/navbar.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
+import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
+import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/screens/anime/details_page.dart';
 import 'package:anymex/screens/manga/details_page.dart';
@@ -68,6 +70,13 @@ class _UserProfilePageState extends State<UserProfilePage>
   bool? _isFollowerOfUser;
   bool _followToggling = false;
   bool _isAboutExpanded = true;
+
+  bool _showMessageComposer = false;
+  bool _isPrivateMessage = false;
+  final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
+  final ValueNotifier<ComposerBannerData?> _messageBannerNotifier =
+      ValueNotifier<ComposerBannerData?>(null);
 
   Color? _avatarDominantColor;
   String? _customBanner;
@@ -223,6 +232,9 @@ class _UserProfilePageState extends State<UserProfilePage>
       });
     }
     _bannerController.dispose();
+    _messageController.dispose();
+    _messageFocusNode.dispose();
+    _messageBannerNotifier.dispose();
 
     super.dispose();
   }
@@ -523,6 +535,7 @@ class _UserProfilePageState extends State<UserProfilePage>
                   width: double.infinity,
                   height: height ?? double.infinity,
                   color: blurColor,
+                  memCacheWidth: blurAmount > 2 ? 80 : null,
                 ),
               ),
             );
@@ -612,18 +625,47 @@ class _UserProfilePageState extends State<UserProfilePage>
     final bool isDesktop =
         getResponsiveValue(context, mobileValue: false, desktopValue: true);
 
-    return AnymeXScaffold(
-      backgroundColor: Colors.transparent,
-      extendBehindTitleBar: Platform.isWindows,
-      extendBody: true,
-      bottomNavigationBar: isDesktop
-          ? null
-          : ResponsiveNavBar(
-              isDesktop: false,
-              currentIndex: _selectedTab,
-              items: _profileNavItems,
-            ),
-      body: _buildBody(context, isDesktop),
+    final showInlineComposer = _showMessageComposer && _selectedTab == 1;
+    return PopScope(
+      canPop: !showInlineComposer,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && showInlineComposer) {
+          _closeMessageComposer();
+        }
+      },
+      child: AnymeXScaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
+        extendBehindTitleBar: Platform.isWindows,
+        extendBody: true,
+        bottomNavigationBar: (isDesktop || showInlineComposer)
+            ? null
+            : ResponsiveNavBar(
+                isDesktop: false,
+                currentIndex: _selectedTab,
+                items: _profileNavItems,
+              ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildBody(context, isDesktop),
+            if (showInlineComposer)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: AnilistThreadComposer(
+                  controller: _messageController,
+                  focusNode: _messageFocusNode,
+                  autofocus: true,
+                  defaultHint: context.l10n.writeAMessage,
+                  customBannerNotifier: _messageBannerNotifier,
+                  onClearStatusBanner: _closeMessageComposer,
+                  onSubmit: _submitMessage,
+                  hasAuthToken: AnilistThreadsService.hasAnilistToken,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1199,119 +1241,112 @@ class _UserProfilePageState extends State<UserProfilePage>
         ));
   }
 
+  ComposerBannerData _buildMessageBanner() {
+    final targetName = _userProfile?.name ?? 'User';
+    return ComposerBannerData(
+      title: 'Message to $targetName',
+      subtitle: _isPrivateMessage ? 'Private message' : 'Public message',
+      leadingIcon:
+          _isPrivateMessage ? Icons.lock_rounded : Icons.public_rounded,
+      leadingTooltip: _isPrivateMessage
+          ? 'Private (tap for Public)'
+          : 'Public (tap for Private)',
+      onLeadingTap: _togglePrivateMessage,
+      onTap: _togglePrivateMessage,
+    );
+  }
+
+  void _togglePrivateMessage() {
+    setState(() => _isPrivateMessage = !_isPrivateMessage);
+    _messageBannerNotifier.value = _buildMessageBanner();
+  }
+
   void _showCreateMessageSheet(BuildContext context) {
-    final composerKey = GlobalKey<ActivityComposerSheetState>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: context.theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return WillPopScope(
-          onWillPop: () => confirmDiscardComposer(
-            context,
-            composerKey: composerKey,
-            discardTitle: context.l10n.discardMessage,
-            discardMessage:
-                context.l10n.youHaveUnsentTextClosingNow,
-          ),
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
-              left: 16,
-              right: 16,
-              top: 20,
+    _messageBannerNotifier.value = _buildMessageBanner();
+    setState(() {
+      _showMessageComposer = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_messageFocusNode.hasFocus) {
+        _messageFocusNode.requestFocus();
+      }
+    });
+  }
+
+  Future<void> _closeMessageComposer() async {
+    if (_messageController.text.trim().isNotEmpty) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: ctx.theme.colorScheme.surfaceContainerHigh,
+          title: AnymeXText(context.l10n.discardMessage),
+          content: AnymeXText(context.l10n.youHaveUnsentTextClosingNow),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: AnymeXText(
+                context.l10n.cancel,
+                style: TextStyle(color: ctx.theme.colorScheme.primary),
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AnymeXText(
-                      "Message ${_userProfile?.name ?? 'User'}",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: context.theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () async {
-                        final discard = await confirmDiscardComposer(
-                          context,
-                          composerKey: composerKey,
-                          discardTitle: context.l10n.discardMessage,
-                          discardMessage:
-                              context.l10n.youHaveUnsentTextClosingNow,
-                        );
-                        if (discard && context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.only(
-                    left: 12,
-                    right: 12,
-                    top: 8,
-                    bottom: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.theme.colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ActivityComposerSheet(
-                    key: composerKey,
-                    isModal: true,
-                    hintText: context.l10n.writeAMessage,
-                    showPrivateToggle: true,
-                    onSubmit: (text, {isPrivate = false}) async {
-                      final anilistAuth = Get.find<AnilistAuth>();
-                      try {
-                        await anilistAuth.createMessageActivity(
-                            widget.userId, text, isPrivate);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: AnymeXText(isPrivate
-                                  ? 'Private message sent successfully!'
-                                  : 'Message posted successfully!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                        _refreshActivityTab(showMessage: false);
-                        return true;
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: AnymeXText(context.l10n.failedToPostMessage(e.toString())),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                        return false;
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: AnymeXText(
+                context.l10n.actionDelete,
+                style: TextStyle(color: ctx.theme.colorScheme.error),
+              ),
             ),
+          ],
+        ),
+      );
+      if (discard != true || !mounted) return;
+    }
+    _messageFocusNode.unfocus();
+    _messageController.clear();
+    _messageBannerNotifier.value = null;
+    setState(() {
+      _showMessageComposer = false;
+      _isPrivateMessage = false;
+    });
+  }
+
+  Future<bool> _submitMessage(String text, int? _) async {
+    final anilistAuth = Get.find<AnilistAuth>();
+    try {
+      await anilistAuth.createMessageActivity(
+        widget.userId,
+        text,
+        _isPrivateMessage,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AnymeXText(_isPrivateMessage
+                ? 'Private message sent successfully!'
+                : 'Message posted successfully!'),
+            backgroundColor: Colors.green,
           ),
         );
-      },
-    );
+        _messageFocusNode.unfocus();
+        _messageController.clear();
+        _messageBannerNotifier.value = null;
+        setState(() {
+          _showMessageComposer = false;
+          _isPrivateMessage = false;
+        });
+        _refreshActivityTab(showMessage: false);
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AnymeXText(context.l10n.failedToPostMessage(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
   }
 }

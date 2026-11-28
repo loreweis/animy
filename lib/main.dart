@@ -411,6 +411,8 @@ class _MainAppState extends State<MainApp> {
     return GetBuilder<ThemeController>(
       builder: (themeCtrl) => Focus(
         focusNode: focusNode,
+        canRequestFocus: false,
+        skipTraversal: true,
         onKeyEvent: _handleKeyEvent,
         child: GetMaterialApp(
           scrollBehavior: MyCustomScrollBehavior(),

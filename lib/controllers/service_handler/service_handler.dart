@@ -144,19 +144,28 @@ class ServiceHandler extends GetxController {
   // Online Services Method
   Future<void> login(BuildContext context) => onlineService.login(context);
   Future<void> logout() => onlineService.logout();
+  Future<void> _runServiceAutoLogin(
+    ServicesType type,
+    Future<void> Function() task,
+  ) async {
+    try {
+      await task();
+    } catch (e) {
+      Logger.i('${type.name} autoLogin error: $e');
+    } finally {
+      if (serviceType.value == type) {
+        isAutoLoggingIn.value = false;
+      }
+    }
+  }
+
   Future<void> autoLogin() async {
     isAutoLoggingIn.value = hasSavedTokenForActiveService;
     try {
       await Future.wait([
-        malService
-            .autoLogin()
-            .catchError((e) => Logger.i('MAL autoLogin error: $e')),
-        anilistService
-            .autoLogin()
-            .catchError((e) => Logger.i('AniList autoLogin error: $e')),
-        simklService
-            .autoLogin()
-            .catchError((e) => Logger.i('Simkl autoLogin error: $e')),
+        _runServiceAutoLogin(ServicesType.mal, malService.autoLogin),
+        _runServiceAutoLogin(ServicesType.anilist, anilistService.autoLogin),
+        _runServiceAutoLogin(ServicesType.simkl, simklService.autoLogin),
       ]);
     } finally {
       isAutoLoggingIn.value = false;
@@ -201,7 +210,7 @@ class ServiceHandler extends GetxController {
     serviceType.value =
         ServicesType.values[ServiceKeys.serviceType.get<int>(0)];
     isAutoLoggingIn.value = hasSavedTokenForActiveService;
-    isHomeLoading.value = !service.isDataLoaded;
+    isHomeLoading.value = serviceType.value != ServicesType.extensions;
   }
 
   @override
@@ -212,11 +221,11 @@ class ServiceHandler extends GetxController {
   }
 
   Future<void> fetchHomePage() async {
-    if (!service.isDataLoaded) {
-      isHomeLoading.value = true;
-    }
+    isHomeLoading.value = true;
     try {
       await service.fetchHomePage();
+    } catch (e) {
+      Logger.i('Home fetch error: $e');
     } finally {
       isHomeLoading.value = false;
     }

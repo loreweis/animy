@@ -10,6 +10,8 @@ import 'package:anymex/models/Anilist/anilist_profile.dart';
 import 'package:anymex/widgets/non_widgets/activity_composer_sheet.dart';
 import 'package:anymex/widgets/common/navbar.dart';
 import 'package:anymex/widgets/common/anymex_scaffold.dart';
+import 'package:anymex/controllers/services/anilist/anilist_threads_service.dart';
+import 'package:anymex/screens/anime/widgets/threads/anilist_thread_composer.dart';
 import 'package:anymex/widgets/helper/platform_builder.dart';
 import 'package:anymex/screens/anime/details_page.dart';
 import 'package:anymex/screens/manga/details_page.dart';
@@ -59,6 +61,12 @@ class _ProfilePageState extends State<ProfilePage>
 
   final GlobalKey<SocialTabState> _socialTabKey = GlobalKey<SocialTabState>();
   bool _isAboutExpanded = true;
+
+  bool _showStatusComposer = false;
+  final TextEditingController _statusController = TextEditingController();
+  final FocusNode _statusFocusNode = FocusNode();
+  final ValueNotifier<ComposerBannerData?> _statusBannerNotifier =
+      ValueNotifier<ComposerBannerData?>(null);
 
   Color? _avatarDominantColor;
 
@@ -133,6 +141,9 @@ class _ProfilePageState extends State<ProfilePage>
       });
     }
     _bannerController.dispose();
+    _statusController.dispose();
+    _statusFocusNode.dispose();
+    _statusBannerNotifier.dispose();
 
     super.dispose();
   }
@@ -459,6 +470,7 @@ class _ProfilePageState extends State<ProfilePage>
                     width: double.infinity,
                     height: height ?? double.infinity,
                     color: blurColor,
+                    memCacheWidth: blurAmount > 2 ? 80 : null,
                   ),
                 ),
               );
@@ -552,137 +564,139 @@ class _ProfilePageState extends State<ProfilePage>
       desktopValue: true,
     );
 
-    return AnymeXScaffold(
-      backgroundColor: Colors.transparent,
-      extendBehindTitleBar: Platform.isWindows,
-      extendBody: true,
-      bottomNavigationBar: isDesktop
-          ? null
-          : ResponsiveNavBar(
-              isDesktop: false,
-              currentIndex: _selectedTab,
-              items: _profileNavItems,
-            ),
-      body: _buildBody(context, isDesktop),
+    final showInlineComposer = _showStatusComposer && _selectedTab == 1;
+    return PopScope(
+      canPop: !showInlineComposer,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && showInlineComposer) {
+          _closeStatusComposer();
+        }
+      },
+      child: AnymeXScaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
+        extendBehindTitleBar: Platform.isWindows,
+        extendBody: true,
+        bottomNavigationBar: (isDesktop || showInlineComposer)
+            ? null
+            : ResponsiveNavBar(
+                isDesktop: false,
+                currentIndex: _selectedTab,
+                items: _profileNavItems,
+              ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildBody(context, isDesktop),
+            if (showInlineComposer)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: AnilistThreadComposer(
+                  controller: _statusController,
+                  focusNode: _statusFocusNode,
+                  autofocus: true,
+                  defaultHint: context.l10n.whatsOnYourMind,
+                  customBannerNotifier: _statusBannerNotifier,
+                  onClearStatusBanner: _closeStatusComposer,
+                  onSubmit: _submitStatus,
+                  hasAuthToken: AnilistThreadsService.hasAnilistToken,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showCreateActivitySheet(BuildContext context) {
-    final composerKey = GlobalKey<ActivityComposerSheetState>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: context.theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return WillPopScope(
-          onWillPop: () => confirmDiscardComposer(
-            context,
-            composerKey: composerKey,
-            discardTitle: context.l10n.discardStatus,
-            discardMessage:
-                context.l10n.youHaveUnsentTextClosingNowWillLose,
-          ),
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.viewInsetsOf(context).bottom,
-              left: 16,
-              right: 16,
-              top: 20,
+    _statusBannerNotifier.value = ComposerBannerData(
+      title: context.l10n.createStatus,
+      subtitle: 'Public status',
+      leadingIcon: Icons.public_rounded,
+    );
+    setState(() {
+      _showStatusComposer = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_statusFocusNode.hasFocus) {
+        _statusFocusNode.requestFocus();
+      }
+    });
+  }
+
+  Future<void> _closeStatusComposer() async {
+    if (_statusController.text.trim().isNotEmpty) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: ctx.theme.colorScheme.surfaceContainerHigh,
+          title: AnymeXText(context.l10n.discardStatus),
+          content: AnymeXText(context.l10n.youHaveUnsentTextClosingNowWillLose),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: AnymeXText(
+                context.l10n.cancel,
+                style: TextStyle(color: ctx.theme.colorScheme.primary),
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AnymeXText(
-                      context.l10n.createStatus,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: context.theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () async {
-                        final discard = await confirmDiscardComposer(
-                          context,
-                          composerKey: composerKey,
-                          discardTitle: context.l10n.discardStatus,
-                          discardMessage:
-                              context.l10n.youHaveUnsentTextClosingNowWillLose,
-                        );
-                        if (discard && context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.only(
-                    left: 12,
-                    right: 12,
-                    top: 8,
-                    bottom: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.theme.colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ActivityComposerSheet(
-                    key: composerKey,
-                    isModal: true,
-                    hintText: context.l10n.whatsOnYourMind,
-                    onSubmit: (text, {isPrivate = false}) async {
-                      final anilistAuth = Get.find<AnilistAuth>();
-                      try {
-                        await anilistAuth.createActivity(text);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: AnymeXText(context.l10n.statusPostedSuccessfully),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          _fetchActivities(); // refresh listt
-                        }
-                        return true;
-                      } catch (e) {
-                        if (context.mounted) {
-                          String errorMessage = 'Failed to post status.';
-                          final errStr = e.toString();
-                          if (errStr.contains('validation')) {
-                            errorMessage =
-                                'Failed: ${errStr.split('"text":[').last.split(']').first.replaceAll('"', '')}';
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: AnymeXText(errorMessage),
-                              backgroundColor: context.theme.colorScheme.error,
-                            ),
-                          );
-                        }
-                        return false;
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: AnymeXText(
+                context.l10n.actionDelete,
+                style: TextStyle(color: ctx.theme.colorScheme.error),
+              ),
             ),
+          ],
+        ),
+      );
+      if (discard != true || !mounted) return;
+    }
+    _statusFocusNode.unfocus();
+    _statusController.clear();
+    _statusBannerNotifier.value = null;
+    setState(() {
+      _showStatusComposer = false;
+    });
+  }
+
+  Future<bool> _submitStatus(String text, int? _) async {
+    final anilistAuth = Get.find<AnilistAuth>();
+    try {
+      await anilistAuth.createActivity(text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AnymeXText(context.l10n.statusPostedSuccessfully),
+            backgroundColor: Colors.green,
           ),
         );
-      },
-    );
+        _statusFocusNode.unfocus();
+        _statusController.clear();
+        _statusBannerNotifier.value = null;
+        setState(() {
+          _showStatusComposer = false;
+        });
+        _fetchActivities();
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'Failed to post status.';
+        final errStr = e.toString();
+        if (errStr.contains('validation')) {
+          errorMessage =
+              'Failed: ${errStr.split('"text":[').last.split(']').first.replaceAll('"', '')}';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AnymeXText(errorMessage),
+            backgroundColor: context.theme.colorScheme.error,
+          ),
+        );
+      }
+      return false;
+    }
   }
 
   List<Widget> _buildTabSlivers(BuildContext context, Profile user) {

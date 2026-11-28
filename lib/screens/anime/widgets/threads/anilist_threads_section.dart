@@ -173,10 +173,14 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
       snackBar('Log in to AniList to create a thread');
       return;
     }
-    if (_anilistMediaId == null) {
+    final resolvedId = _anilistMediaId ??
+        await AnilistThreadsService.resolveAnilistMediaId(widget.media);
+    if (!mounted) return;
+    if (resolvedId == null) {
       errorSnackBar('AniList media ID not resolved yet');
       return;
     }
+    _anilistMediaId = resolvedId;
 
     final created = await AnilistCreateThreadSheet.show(
       context,
@@ -355,13 +359,15 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                           )
                           .toList(),
                     ),
-                    if (AnilistThreadsService.hasAnilistToken &&
-                        _anilistMediaId != null)
-                      IconButton(
-                        icon: const Icon(Icons.add_comment_outlined, size: 20),
-                        tooltip: 'New thread',
-                        onPressed: _showCreateThreadSheet,
+                    IconButton(
+                      icon: Icon(
+                        Icons.add_comment_outlined,
+                        size: 20,
+                        color: colors.onSurfaceVariant,
                       ),
+                      tooltip: 'New thread',
+                      onPressed: _showCreateThreadSheet,
+                    ),
                     IconButton(
                       icon: _isRefreshing
                           ? SizedBox(
@@ -374,7 +380,11 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                                 ),
                               ),
                             )
-                          : const Icon(Icons.refresh_rounded, size: 20),
+                          : Icon(
+                              Icons.refresh_rounded,
+                              size: 20,
+                              color: colors.onSurfaceVariant,
+                            ),
                       tooltip: 'Refresh threads',
                       onPressed: _isRefreshing
                           ? null
@@ -496,7 +506,7 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Row 1: Title on left | Views then Comments on right (no love)
+                // Row 1: Title on left | Comments then Views on right (no love)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -516,18 +526,6 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.visibility_outlined,
-                            size: 14,
-                            color: colors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 3),
-                          AnymeXText(
-                            _formatCount(thread.viewCount),
-                            size: 11.5,
-                            color: colors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 10),
-                          Icon(
                             Icons.chat_bubble_outline_rounded,
                             size: 14,
                             color: colors.onSurfaceVariant,
@@ -535,6 +533,18 @@ class _AnilistThreadsSectionState extends State<AnilistThreadsSection> {
                           const SizedBox(width: 3),
                           AnymeXText(
                             _formatCount(thread.replyCount),
+                            size: 11.5,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 10),
+                          Icon(
+                            Icons.visibility_outlined,
+                            size: 14,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          AnymeXText(
+                            _formatCount(thread.viewCount),
                             size: 11.5,
                             color: colors.onSurfaceVariant,
                           ),
